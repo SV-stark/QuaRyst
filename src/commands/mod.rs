@@ -66,7 +66,10 @@ impl AppState {
     /// apart from "indexed and genuinely has no match".
     #[must_use]
     pub fn is_indexing(&self) -> bool {
-        self.indexing_handle.lock().is_some()
+        self.indexing_handle
+            .lock()
+            .as_ref()
+            .is_some_and(|handle| !handle.is_finished())
     }
 
     /// Cancels any in-flight indexing run.

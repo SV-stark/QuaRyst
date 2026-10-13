@@ -318,12 +318,11 @@ impl FilenameIndex {
         let fst_map = Arc::clone(&self.snapshot);
         let save_lock = Arc::clone(&self.save_lock);
         let index_path = self.data_path.join(INDEX_FILENAME);
-        let entries: Vec<FilenameEntry> = rebuilt.entries.to_vec();
 
         let task = move || {
-            // Serialise disk writes. Re-reading the snapshot inside the lock
-            // means a save always writes the newest state, so a slow write can
-            // never overwrite a newer index with an older one.
+            // Serialise disk writes. Read the snapshot inside the lock so a save
+            // always writes the newest state; a slow save can never overwrite a
+            // newer index with an older one.
             let _guard = save_lock.lock();
             let latest = fst_map.load();
             debug!(
@@ -331,7 +330,7 @@ impl FilenameIndex {
                 latest.entries.len(),
                 latest.fst_entries
             );
-            Self::save_entries(&entries, &index_path);
+            Self::save_entries(&latest.entries.to_vec(), &index_path);
         };
 
         Self::spawn_blocking(task);

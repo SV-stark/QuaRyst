@@ -18,12 +18,14 @@ pub fn get_settings_internal(state: &Arc<AppState>) -> Result<AppSettings, Strin
 /// through dedicated commands: they are ordinary settings fields, and a second
 /// write path would race this one for the whole settings document.
 pub fn save_settings_internal(settings: &AppSettings, state: &Arc<AppState>) -> Result<(), String> {
-    state.settings_cache.store(Arc::new(settings.clone()));
-
+    // Persist first so the in-memory cache and watcher never report settings that
+    // failed to reach disk.
     state
         .settings_manager
         .save(settings)
         .map_err(|e| e.to_string())?;
+
+    state.settings_cache.store(Arc::new(settings.clone()));
 
     let mut watcher = state.watcher.lock();
 

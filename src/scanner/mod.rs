@@ -510,7 +510,7 @@ impl Scanner {
                 chunk.push((path, modified, size));
 
                 if chunk.len() >= CHUNK_SIZE
-                    && send_stale_chunk(&metadata_db_for_filter, &chunk_tx, &mut chunk)
+                    && !send_stale_chunk(&metadata_db_for_filter, &chunk_tx, &mut chunk)
                 {
                     // Downstream is gone; stop feeding it.
                     return;

@@ -32,7 +32,7 @@ pub fn cancel_indexing_internal(state: &Arc<AppState>) {
 ///
 /// Returns an error if the index statistics cannot be retrieved.
 pub async fn get_index_status_internal(state: &Arc<AppState>) -> Result<IndexStatus, String> {
-    let is_running = state.indexing_handle.lock().is_some();
+    let is_running = state.is_indexing();
 
     let status = if is_running {
         "indexing".to_string()

@@ -549,7 +549,8 @@ impl MetadataDb {
             for path in paths {
                 let path_cow = path.to_string_lossy();
                 match table.remove(path_cow.as_ref()) {
-                    Ok(_) => removed += 1,
+                    Ok(Some(_)) => removed += 1,
+                    Ok(None) => {}
                     Err(e) => {
                         tracing::warn!("Failed to remove metadata for {}: {e}", path.display());
                     }
