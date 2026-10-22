@@ -12,6 +12,7 @@ pub struct IndexWriterManager {
     schema: Schema,
     path_field: Field,
     content_field: Field,
+    content_preview_field: Field,
     title_field: Field,
     modified_field: Field,
     size_field: Field,
@@ -68,6 +69,9 @@ impl IndexWriterManager {
         let content_field = schema
             .get_field("content")
             .map_err(|_| FlashError::index_field("content", "Field not found in schema"))?;
+        let content_preview_field = schema
+            .get_field("content_preview")
+            .map_err(|_| FlashError::index_field("content_preview", "Field not found in schema"))?;
         let title_field = schema
             .get_field("title")
             .map_err(|_| FlashError::index_field("title", "Field not found in schema"))?;
@@ -86,6 +90,7 @@ impl IndexWriterManager {
             schema,
             path_field,
             content_field,
+            content_preview_field,
             title_field,
             modified_field,
             size_field,
@@ -141,15 +146,33 @@ impl IndexWriterManager {
         document.add_text(self.path_field, &doc.path);
 
         // Unify content and keywords into a single stream to keep posting list lean
-        if let Some(ref keywords) = doc.keywords {
-            let mut combined = String::with_capacity(doc.content.len() + keywords.len() + 1);
-            combined.push_str(&doc.content);
-            combined.push(' ');
-            combined.push_str(keywords);
-            document.add_text(self.content_field, &combined);
+        let combined = doc.keywords.as_ref().map_or_else(
+            || doc.content.clone(),
+            |keywords| {
+                let mut c = String::with_capacity(doc.content.len() + keywords.len() + 1);
+                c.push_str(&doc.content);
+                c.push(' ');
+                c.push_str(keywords);
+                c
+            },
+        );
+        document.add_text(self.content_field, &combined);
+
+        // Store a bounded preview so snippets can be rendered from the index
+        // without re-reading the file from disk on every query (Phase B fix).
+        #[allow(clippy::items_after_statements)]
+        const PREVIEW_CAP: usize = 4096;
+        let preview = if combined.len() <= PREVIEW_CAP {
+            combined
         } else {
-            document.add_text(self.content_field, &doc.content);
-        }
+            // Truncate at a char boundary to avoid splitting a multibyte char.
+            let mut end = PREVIEW_CAP;
+            while !combined.is_char_boundary(end) && end > 0 {
+                end -= 1;
+            }
+            combined[..end].to_string()
+        };
+        document.add_text(self.content_preview_field, &preview);
 
         if let Some(ref title) = doc.title {
             document.add_text(self.title_field, title);

@@ -33,6 +33,12 @@ pub enum Message {
     SearchError(FlashError),
     ResultSelected(usize),
     ItemHovered(Option<usize>),
+    ResultsScrolled(f32),
+    ToggleResultSelection(String),
+    ClearSelection,
+    CopySelectedPaths,
+    OpenSelectedFiles,
+    RevealSelectedInFolder,
     OpenFile(String),
     OpenFolder(String),
     CopyPath(String),
@@ -148,6 +154,8 @@ pub struct App {
     pub(crate) search_query: String,
     pub(crate) results: Vec<FileItem>,
     pub(crate) selected_index: Option<usize>,
+    /// Set of file paths selected for batch operations (Ctrl+click / Shift+click).
+    pub(crate) selected_paths: std::collections::HashSet<String>,
     /// Previous click on the results list, used to synthesise a double-click.
     ///
     /// Iced's `MouseArea` exposes only single- and right-click, so a
@@ -158,6 +166,7 @@ pub struct App {
     /// `search_id` the pending [`LastClick`] belongs to.
     pub(crate) click_search_id: usize,
     pub(crate) hovered_item_index: Option<usize>,
+    pub(crate) scroll_offset: f32,
     pub(crate) is_searching: bool,
     pub(crate) search_id: usize,
     pub(crate) filter_extension: String,
@@ -213,9 +222,11 @@ impl Default for App {
             search_query: String::new(),
             results: Vec::new(),
             selected_index: None,
+            selected_paths: std::collections::HashSet::new(),
             last_click: None,
             click_search_id: 0,
             hovered_item_index: None,
+            scroll_offset: 0.0,
             is_searching: false,
             search_id: 0,
             filter_extension: String::new(),

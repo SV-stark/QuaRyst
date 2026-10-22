@@ -10,7 +10,10 @@ use tantivy::schema::{
 /// trying to migrate documents in place.
 ///
 /// 3.0.0: `content` is no longer STORED. Snippets are re-extracted from disk.
-pub const SCHEMA_LAYOUT_VERSION: &str = "3.0.0";
+/// 4.0.0: `content_preview` (first ~4 KB, STORED) added so snippets come
+///        from the index instead of a per-query disk re-read. Falls back to
+///        disk extraction when the match is beyond the preview window.
+pub const SCHEMA_LAYOUT_VERSION: &str = "4.0.0";
 
 /// Create Tantivy schema optimized for file search with minimal posting list overhead
 #[must_use]
@@ -38,6 +41,17 @@ pub fn create_schema() -> Schema {
             .set_index_option(IndexRecordOption::WithFreqsAndPositions),
     );
     schema_builder.add_text_field("content", text_options);
+
+    // Content preview — first ~4 KB of the extracted text, STORED only.
+    //
+    // `content` above is indexed but not stored, so producing a snippet used
+    // to require re-reading and re-parsing every matching file from disk
+    // (Phase B), which dominated query latency by 4-5 orders of magnitude.
+    // Storing a bounded excerpt here lets `searcher` render snippets from
+    // memory; disk extraction remains as a fallback when the match falls
+    // outside the preview window.
+    let preview_options = TextOptions::default().set_stored();
+    schema_builder.add_text_field("content_preview", preview_options);
 
     // Title - stored for display, indexed for search
     schema_builder.add_text_field("title", TEXT | STORED);

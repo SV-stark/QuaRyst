@@ -10,6 +10,8 @@ use crate::iced_ui::icons::load_icon_size;
 use iced::widget::{Space, button, column, container, mouse_area, row, scrollable, text};
 use iced::{Alignment, Element, Font, Length, Padding, font};
 
+#[allow(clippy::items_after_statements)]
+#[allow(clippy::too_many_lines)]
 pub(super) fn results_panel(app: &App) -> Element<'_, Message> {
     if app.results.is_empty() {
         if app.search_query.is_empty() {
@@ -19,13 +21,112 @@ pub(super) fn results_panel(app: &App) -> Element<'_, Message> {
     }
 
     let max_display = app.settings.results_per_page.clamp(25, 200);
-    let mut result_elements: Vec<Element<Message>> = app
-        .results
-        .iter()
-        .take(max_display)
-        .enumerate()
-        .map(|(i, res)| result_item_view(app.selected_index, app.hovered_item_index, i, res))
-        .collect();
+
+    // Virtual scrolling: only render items visible in the viewport plus a
+    // small buffer. Item height is estimated at 90 px; the viewport height
+    // is derived from the scrollable bounds.
+    const ITEM_HEIGHT: f32 = 90.0;
+    const VISIBLE_BUFFER: usize = 5;
+    let viewport_height = 600.0_f32; // approximate; refined by on_scroll
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    let visible_count =
+        ((viewport_height / ITEM_HEIGHT) as usize + VISIBLE_BUFFER).min(max_display);
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    let scroll_items = (app.scroll_offset / ITEM_HEIGHT) as usize;
+    let start = scroll_items.min(app.results.len().saturating_sub(visible_count));
+    let end = (start + visible_count)
+        .min(max_display)
+        .min(app.results.len());
+
+    // Batch operations toolbar — shown when >1 result is selected.
+    let batch_toolbar: Option<Element<Message>> = if app.selected_paths.len() > 1 {
+        Some(
+            container(
+                row![
+                    text(format!("{} selected", app.selected_paths.len()))
+                        .size(theme::fs(12.0))
+                        .style(theme::muted_text_style()),
+                    Space::new().width(Length::Fill),
+                    button(
+                        row![
+                            load_icon_size("copy", 14.0),
+                            text("Copy Paths").size(theme::fs(11.0)),
+                        ]
+                        .spacing(4)
+                        .align_y(Alignment::Center),
+                    )
+                    .on_press(Message::CopySelectedPaths)
+                    .style(theme::ghost_button())
+                    .padding(Padding::from([4, 8])),
+                    button(
+                        row![
+                            load_icon_size("external-link", 14.0),
+                            text("Open All").size(theme::fs(11.0)),
+                        ]
+                        .spacing(4)
+                        .align_y(Alignment::Center),
+                    )
+                    .on_press(Message::OpenSelectedFiles)
+                    .style(theme::ghost_button())
+                    .padding(Padding::from([4, 8])),
+                    button(
+                        row![
+                            load_icon_size("folder-open", 14.0),
+                            text("Reveal All").size(theme::fs(11.0)),
+                        ]
+                        .spacing(4)
+                        .align_y(Alignment::Center),
+                    )
+                    .on_press(Message::RevealSelectedInFolder)
+                    .style(theme::ghost_button())
+                    .padding(Padding::from([4, 8])),
+                    button(text("Clear").size(theme::fs(11.0)))
+                        .on_press(Message::ClearSelection)
+                        .style(theme::ghost_button())
+                        .padding(Padding::from([4, 8])),
+                ]
+                .spacing(6)
+                .align_y(Alignment::Center),
+            )
+            .padding(Padding::from([6, 12]))
+            .style(theme::padded_card_container)
+            .width(Length::Fill)
+            .into(),
+        )
+    } else {
+        None
+    };
+    // Top spacer for items above the visible range.
+    let mut result_elements: Vec<Element<Message>> = Vec::new();
+    if start > 0 {
+        result_elements.push(
+            Space::new()
+                .height(Length::Fixed(start as f32 * ITEM_HEIGHT))
+                .into(),
+        );
+    }
+
+    for i in start..end {
+        if let Some(res) = app.results.get(i) {
+            result_elements.push(result_item_view(
+                app.selected_index,
+                app.hovered_item_index,
+                &app.selected_paths,
+                i,
+                res,
+            ));
+        }
+    }
+
+    // Bottom spacer for items below the visible range.
+    let remaining = app.results.len().saturating_sub(end);
+    if remaining > 0 {
+        result_elements.push(
+            Space::new()
+                .height(Length::Fixed(remaining as f32 * ITEM_HEIGHT))
+                .into(),
+        );
+    }
 
     if app.results.len() > max_display {
         result_elements.push(
@@ -44,9 +145,17 @@ pub(super) fn results_panel(app: &App) -> Element<'_, Message> {
         );
     }
 
-    let results = scrollable(column(result_elements)).height(Length::Fill);
+    let results = scrollable(column(result_elements))
+        .height(Length::Fill)
+        .on_scroll(|vp| Message::ResultsScrolled(vp.absolute_offset().y));
 
-    container(results)
+    let mut col = column![];
+    if let Some(toolbar) = batch_toolbar {
+        col = col.push(toolbar);
+    }
+    col = col.push(results);
+
+    container(col)
         .width(Length::FillPortion(2))
         .height(Length::Fill)
         .into()
@@ -104,11 +213,13 @@ fn no_results_view(_app: &App) -> Element<'_, Message> {
 fn result_item_view<'a>(
     selected_index: Option<usize>,
     hovered_item_index: Option<usize>,
+    selected_paths: &'a std::collections::HashSet<String>,
     i: usize,
     res: &'a FileItem,
 ) -> Element<'a, Message> {
     let is_selected = selected_index == Some(i);
     let is_hovered = hovered_item_index == Some(i);
+    let is_batch_selected = selected_paths.contains(&res.path);
 
     let mut actions_row = row![].spacing(8);
     if is_hovered || is_selected {
@@ -145,19 +256,22 @@ fn result_item_view<'a>(
         );
     }
 
-    let ext_str = res.extension.as_deref().unwrap_or("FILE");
-    let file_icon_name = match ext_str.to_lowercase().as_str() {
-        "pdf" | "txt" | "md" | "doc" | "docx" => "file-text",
-        "rs" | "py" | "js" | "ts" | "cpp" | "c" | "cs" | "java" | "go" | "html" | "css"
-        | "json" | "toml" => "file-code",
-        "png" | "jpg" | "jpeg" | "svg" | "gif" => "file-image",
-        "mp4" | "mkv" | "avi" => "file-video",
-        "mp3" | "wav" | "flac" => "file-audio",
-        _ => "file",
-    };
+    let file_icon_name = crate::iced_ui::icons::extension_icon(res.extension.as_deref());
 
+    let path_for_toggle = res.path.clone();
     let card_content = column![
         row![
+            button(load_icon_size(
+                if is_batch_selected {
+                    "check-square"
+                } else {
+                    "square"
+                },
+                16.0,
+            ))
+            .on_press(Message::ToggleResultSelection(path_for_toggle))
+            .style(theme::ghost_button())
+            .padding(Padding::new(2.0)),
             load_icon_size(file_icon_name, 18.0),
             text(&*res.title).size(theme::fs(14.0)).font(Font {
                 weight: font::Weight::Bold,
@@ -173,7 +287,7 @@ fn result_item_view<'a>(
             .style(theme::dim_text_style()),
         row![
             container(
-                text(ext_str.to_uppercase())
+                text(res.extension.as_deref().unwrap_or("FILE").to_uppercase())
                     .size(theme::fs(10.0))
                     .font(Font {
                         weight: font::Weight::Bold,

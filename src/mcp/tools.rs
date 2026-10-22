@@ -607,10 +607,10 @@ mod tests {
         assert_eq!(err.code, protocol::INVALID_PARAMS);
     }
 
-    /// End-to-end proof that change #2 works: `content` is no longer STORED, so a
-    /// snippet can only exist if it was re-extracted from disk.
+    /// End-to-end proof that schema 4.0.0 stores a bounded preview: the searcher
+    /// now renders snippets from the index without a disk re-read.
     #[tokio::test]
-    async fn searcher_returns_hits_without_snippets_because_content_is_not_stored() {
+    async fn searcher_returns_hits_with_snippets_from_stored_preview() {
         let dir = tempfile::tempdir().expect("tempdir");
         let file = dir.path().join("needle.txt");
         std::fs::write(&file, "a distinctive haystackneedle phrase here").expect("write");
@@ -628,6 +628,9 @@ mod tests {
             .expect("index doc");
         indexer.commit().expect("commit");
 
+        // Allow the reader to pick up the committed docs.
+        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+
         let hits = indexer
             .search_blocking(
                 &SearchParams::builder()
@@ -639,8 +642,8 @@ mod tests {
             .expect("search");
         assert_eq!(hits.len(), 1, "the indexed document must be findable");
         assert!(
-            hits[0].snippets.is_empty(),
-            "the searcher must not synthesize snippets from the doc store"
+            !hits[0].snippets.is_empty(),
+            "the searcher must render snippets from the stored content_preview"
         );
     }
 }

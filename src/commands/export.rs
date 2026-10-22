@@ -11,8 +11,12 @@ pub fn export_results_csv(results: &[SearchResult], path: &str) -> Result<()> {
 
     for r in results {
         let title = r.title.as_deref().unwrap_or("");
-        wtr.write_record(&[r.score.to_string(), r.file_path.clone(), title.to_string()])
-            .map_err(|e| FlashError::Io(std::sync::Arc::new(e.into())))?;
+        wtr.write_record(&[
+            r.score.to_string(),
+            r.file_path.to_string(),
+            title.to_string(),
+        ])
+        .map_err(|e| FlashError::Io(std::sync::Arc::new(e.into())))?;
     }
 
     wtr.flush()

@@ -1,5 +1,5 @@
 use iced::{
-    Background, Border, Color, Theme,
+    Background, Border, Color, Shadow, Theme, Vector,
     border::Radius,
     widget::{button, container, text, text_input},
 };
@@ -31,6 +31,14 @@ pub fn fs(base: f32) -> f32 {
 pub fn set_text_scale(size: crate::settings::FontSize) {
     TEXT_SCALE_PERCENT.store(size.scale_percent(), std::sync::atomic::Ordering::Relaxed);
 }
+
+// --- Spacing Scale (4px grid, like fastframe) ---
+pub const SPACE_XS: f32 = 4.0;
+pub const SPACE_SM: f32 = 8.0;
+pub const SPACE_MD: f32 = 12.0;
+pub const SPACE_LG: f32 = 16.0;
+pub const SPACE_XL: f32 = 24.0;
+pub const SPACE_XXL: f32 = 32.0;
 
 // --- Color Palette (Windows 11 Fluent UI Standards) ---
 pub const SURFACE_DARK: Color = Color::from_rgb(0.125, 0.125, 0.125); // #202020 (Fluent Mica Dark)
@@ -135,7 +143,12 @@ pub fn sidebar_container(theme: &Theme) -> container::Style {
         border: Border {
             color: border_color(theme),
             width: 1.0,
-            radius: Radius::from(0.0),
+            radius: Radius::from(8.0),
+        },
+        shadow: Shadow {
+            color: Color::from_rgba(0.0, 0.0, 0.0, 0.12),
+            offset: Vector::new(2.0, 0.0),
+            blur_radius: 8.0,
         },
         ..Default::default()
     }
@@ -156,7 +169,7 @@ pub fn top_bar_container(theme: &Theme) -> container::Style {
         border: Border {
             color: border_color(theme),
             width: 1.0,
-            radius: Radius::from(0.0),
+            radius: Radius::from(8.0),
         },
         ..Default::default()
     }
@@ -169,7 +182,7 @@ pub fn header_container(theme: &Theme) -> container::Style {
         border: Border {
             color: border_color(theme),
             width: 1.0,
-            radius: Radius::from(0.0),
+            radius: Radius::from(8.0),
         },
         ..Default::default()
     }
@@ -211,6 +224,11 @@ pub fn result_card_normal(theme: &Theme) -> container::Style {
             width: 1.0,
             radius: Radius::from(8.0),
         },
+        shadow: Shadow {
+            color: Color::from_rgba(0.0, 0.0, 0.0, if is_dark { 0.2 } else { 0.08 }),
+            offset: Vector::new(0.0, 1.0),
+            blur_radius: 4.0,
+        },
         ..Default::default()
     }
 }
@@ -228,6 +246,11 @@ pub fn result_card_hover(theme: &Theme) -> container::Style {
             color: ACCENT_BLUE,
             width: 1.0,
             radius: Radius::from(8.0),
+        },
+        shadow: Shadow {
+            color: Color::from_rgba(0.0, 0.47, 0.83, 0.15),
+            offset: Vector::new(0.0, 2.0),
+            blur_radius: 8.0,
         },
         ..Default::default()
     }
@@ -247,6 +270,11 @@ pub fn result_card_selected(theme: &Theme) -> container::Style {
             width: 1.0,
             radius: Radius::from(8.0),
         },
+        shadow: Shadow {
+            color: Color::from_rgba(0.0, 0.47, 0.83, 0.2),
+            offset: Vector::new(0.0, 2.0),
+            blur_radius: 8.0,
+        },
         ..Default::default()
     }
 }
@@ -258,7 +286,7 @@ pub fn table_header_container(theme: &Theme) -> container::Style {
         border: Border {
             color: border_color(theme),
             width: 1.0,
-            radius: Radius::from(0.0),
+            radius: Radius::from(8.0),
         },
         text_color: Some(text_muted_color(theme)),
         ..Default::default()
@@ -272,7 +300,7 @@ pub fn hits_container(theme: &Theme) -> container::Style {
         border: Border {
             color: border_color(theme),
             width: 1.0,
-            radius: Radius::from(0.0),
+            radius: Radius::from(8.0),
         },
         ..Default::default()
     }
@@ -679,6 +707,11 @@ pub fn padded_card_container(theme: &Theme) -> container::Style {
             color: border_color(theme),
             width: 1.0,
             radius: Radius::from(8.0),
+        },
+        shadow: Shadow {
+            color: Color::from_rgba(0.0, 0.0, 0.0, if is_dark { 0.15 } else { 0.06 }),
+            offset: Vector::new(0.0, 2.0),
+            blur_radius: 6.0,
         },
         ..Default::default()
     }

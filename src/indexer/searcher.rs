@@ -128,7 +128,7 @@ fn directory_size_sync(dir: &std::path::Path) -> u64 {
 /// Search result containing file metadata and score
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchResult {
-    pub file_path: String,
+    pub file_path: CompactString,
     pub score: f32,
     pub title: Option<CompactString>,
     pub extension: Option<CompactString>,
@@ -146,7 +146,7 @@ impl SearchResult {
 
 #[derive(Default)]
 pub struct SearchResultBuilder {
-    file_path: Option<String>,
+    file_path: Option<CompactString>,
     score: Option<f32>,
     title: Option<CompactString>,
     extension: Option<CompactString>,
@@ -158,7 +158,7 @@ pub struct SearchResultBuilder {
 
 impl SearchResultBuilder {
     #[must_use]
-    pub fn file_path(mut self, file_path: String) -> Self {
+    pub fn file_path(mut self, file_path: CompactString) -> Self {
         self.file_path = Some(file_path);
         self
     }
@@ -422,6 +422,7 @@ pub struct IndexSearcher {
     cache: QueryCache,
     path_field: Field,
     content_field: Field,
+    content_preview_field: Field,
     title_field: Field,
     modified_field: Field,
     size_field: Field,
@@ -438,7 +439,7 @@ impl IndexSearcher {
     pub fn new(index: &Index, index_path: &std::path::Path) -> Result<Self> {
         let reader = index
             .reader_builder()
-            .reload_policy(tantivy::ReloadPolicy::OnCommitWithDelay)
+            .reload_policy(tantivy::ReloadPolicy::Manual)
             .try_into()
             .map_err(|e| FlashError::index(format!("Failed to create index reader: {e}")))?;
 
@@ -449,6 +450,9 @@ impl IndexSearcher {
         let content_field = schema
             .get_field("content")
             .map_err(|_| FlashError::index_field("content", "Field not found"))?;
+        let content_preview_field = schema
+            .get_field("content_preview")
+            .map_err(|_| FlashError::index_field("content_preview", "Field not found"))?;
         let title_field = schema
             .get_field("title")
             .map_err(|_| FlashError::index_field("title", "Field not found"))?;
@@ -469,6 +473,7 @@ impl IndexSearcher {
             cache: QueryCache::new(),
             path_field,
             content_field,
+            content_preview_field,
             title_field,
             modified_field,
             size_field,
@@ -776,8 +781,14 @@ impl IndexSearcher {
                 .entry(doc_address.segment_ord)
                 .or_insert_with(|| SegmentMeta::for_doc(searcher, doc_address.segment_ord));
 
-            let result =
-                self.retrieve_result_with_doc(entry, score, doc_address, &doc, highlight_terms);
+            let result = self.retrieve_result_with_doc(
+                entry,
+                score,
+                doc_address,
+                &doc,
+                highlight_terms,
+                parsed.case_sensitive,
+            );
             results.push(result);
         }
 
@@ -792,6 +803,7 @@ impl IndexSearcher {
         doc_address: tantivy::DocAddress,
         doc: &tantivy::TantivyDocument,
         highlight_terms: &[String],
+        case_sensitive: bool,
     ) -> SearchResult {
         let size = segment
             .size
@@ -808,7 +820,7 @@ impl IndexSearcher {
             .get_first(self.path_field)
             .and_then(|v| v.as_str())
             .unwrap_or_default()
-            .to_string();
+            .into();
 
         let title = doc
             .get_first(self.title_field)
@@ -820,10 +832,19 @@ impl IndexSearcher {
             .and_then(|v| v.as_str())
             .map(CompactString::from);
 
-        // `snippets` is filled in after the fact by `crate::snippet`, which
-        // re-extracts each hit from disk. Populating it here would require
-        // reading the document body out of the doc store, which is exactly the
-        // cost that removing `STORED` from `content` was meant to avoid.
+        // Render the snippet from the stored preview (bounded ~4 KB) instead of
+        // re-extracting the file from disk. When the match falls outside the
+        // preview window `render_snippet` returns None and the result keeps an
+        // empty snippet list; `commands::search` then falls back to a disk
+        // extraction for just that hit.
+        let preview = doc
+            .get_first(self.content_preview_field)
+            .and_then(|v| v.as_str());
+        let snippets = preview
+            .and_then(|text| crate::snippet::render_snippet(text, highlight_terms, case_sensitive))
+            .map(|s| vec![s])
+            .unwrap_or_default();
+
         SearchResult {
             file_path,
             score,
@@ -832,7 +853,7 @@ impl IndexSearcher {
             modified,
             size,
             matched_terms: highlight_terms.to_vec(),
-            snippets: Vec::new(),
+            snippets,
         }
     }
 
@@ -901,7 +922,8 @@ impl IndexSearcher {
                 let entry = segments
                     .entry(doc_address.segment_ord)
                     .or_insert_with(|| SegmentMeta::for_doc(&searcher, doc_address.segment_ord));
-                let mut res = self.retrieve_result_with_doc(entry, 0.0, doc_address, &doc, &[]);
+                let mut res =
+                    self.retrieve_result_with_doc(entry, 0.0, doc_address, &doc, &[], false);
                 res.modified =
                     mod_time.map(|t| u64::try_from(t.into_timestamp_secs()).unwrap_or(0));
                 results.push(res);
@@ -1108,19 +1130,20 @@ mod tests {
     }
 
     #[test]
-    fn test_searcher_never_produces_snippets() {
-        // `content` is no longer STORED (schema 3.0.0), so the searcher cannot
-        // read a hit's text and must not pretend to. Snippets are rebuilt from
-        // disk by `crate::snippet`, which is wired in at the command layer.
+    fn test_searcher_produces_snippets_from_stored_preview() {
+        // `content_preview` is STORED (schema 4.0.0), so the searcher renders
+        // snippets from the index without a disk re-read. Deep matches that
+        // fall outside the preview window keep an empty snippet list.
         let (_dir, index) = fixture();
         let results = search(&index, |b| b.query("quarterly"));
         assert!(
             !results.is_empty(),
             "the fixture must still match so this test is meaningful"
         );
+        // At least one result should have a snippet from the stored preview.
         assert!(
-            results.iter().all(|r| r.snippets.is_empty()),
-            "the searcher must leave snippet generation to the command layer"
+            results.iter().any(|r| !r.snippets.is_empty()),
+            "the searcher should render snippets from the stored content_preview"
         );
     }
 

@@ -55,13 +55,17 @@ async fn test_end_to_end_search() -> Result<()> {
         .await?;
     assert_eq!(results.len(), 1);
     assert!(results[0].file_path.contains("hello.txt"));
-    // Since schema 3.0.0 `content` is not STORED, so the indexer cannot produce a
-    // snippet. Snippets are re-extracted from disk by `flash_search::snippet`,
-    // which `commands::search_query_internal` drives. Asserting on the indexer's
-    // empty snippets here pins that split so it cannot regress silently.
+    // Schema 4.0.0 stores a bounded `content_preview`, so the indexer now
+    // renders snippets from the index without a disk re-read. The on-disk
+    // `generate_snippets` path remains as a fallback for deep matches.
     assert!(
-        results[0].snippets.is_empty(),
-        "the indexer must not synthesize snippets now that content is not stored"
+        !results[0].snippets.is_empty(),
+        "the indexer should synthesize snippets from the stored content_preview"
+    );
+    assert!(
+        results[0].snippets[0].contains("<b>"),
+        "stored-preview snippet should highlight the match, got: {:?}",
+        results[0].snippets[0]
     );
 
     // The on-disk snippet path must still find the term and highlight it.

@@ -2,6 +2,59 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.18.3] - 2026-10-22
+
+### Added
+- **Bounded stored content preview (schema 4.0.0).** The Tantivy index now
+  stores the first ~4 KB of each document's extracted text as a `content_preview`
+  field (`STORED` only). Snippets are rendered from this stored excerpt during
+  result assembly, eliminating the per-query disk re-read that dominated search
+  latency (Phase B). Disk extraction via `crate::snippet` remains as a fallback
+  for matches that fall outside the preview window or for case-sensitive queries
+  that need `case_match` from the full text.
+
+### Changed
+- Ran `cargo update`: bumped `xberg` 1.3.9 → 1.3.10 (and `xberg-native-pdf` /
+  `xberg-tesseract` to match), plus routine patch updates across the dependency
+  tree (ureq, webpki-roots, zip, zstd-sys, zerocopy, serde_yaml → yaml_serde,
+  and others). No API breakage; `cargo check` and the full test suite pass.
+- `commands::search::search_query_internal` now only extracts from disk for
+  results whose stored snippet is empty (deep matches) or when case-sensitive
+  filtering is active. The common case costs zero disk I/O.
+
+### UI Polish
+- **Inter font** (variable) bundled and set as default typeface. Lucide icons
+  remain for icon glyphs.
+- **Rounded corners** (8 px) on all containers, sidebars, and cards — was
+  sharp 0 px rectangles.
+- **Drop shadows** on result cards, sidebar, and padded cards for depth.
+- **Spacing scale** (4 / 8 / 12 / 16 / 24 / 32 px) constants added to theme
+  for consistent layout.
+- **Loading spinner** (`iced_aw`) replaces the plain "Searching..." text.
+- Added `iced_aw` dependency (spinner, badge, card widgets).
+
+### Performance & UX
+- **Virtual scrolling** in results panel: only visible rows + buffer are
+  rendered; spacers maintain scroll position. Reduces per-frame widget count
+  from ~2,000 to ~20 for large result sets.
+- **Batch operations**: Ctrl+click to select multiple results; toolbar appears
+  with Copy Paths, Open All, Reveal All, Clear. Selection state tracked by
+  file path.
+- **File type icons**: result rows now show extension-specific Lucide icons
+  (code, image, spreadsheet, video, archive, etc.) instead of a generic file
+  icon.
+- **ReloadPolicy::Manual**: reader no longer auto-polls for external commits;
+  `IndexManager::commit()` already calls `reload()` immediately, so live
+  updates propagate without the previous delay.
+- **CompactString for SearchResult.file_path**: small paths avoid heap
+  allocation; reduces per-query allocation in the search hot path.
+
+### Notes
+- `xberg` 1.3.10 is a patch release; no extraction behaviour changes expected.
+  If snippets or previews regress, pin back to 1.3.9 via `Cargo.lock`.
+- Schema bump 3.0.0 → 4.0.0 triggers an automatic index rebuild on first
+  launch after upgrade. The old index is rotated aside as a backup.
+
 ## [0.18.2] - 2026-10-05
 
 No behaviour change. The search screen is split into panels.

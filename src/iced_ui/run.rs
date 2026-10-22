@@ -63,6 +63,8 @@ pub fn run_ui(
     .theme(app_theme)
     .subscription(subscription)
     .font(icons::FONT_BYTES)
+    .font(icons::INTER_FONT_BYTES)
+    .default_font(icons::INTER_FONT)
     .run()
     .map_err(|e| crate::error::FlashError::config("run_ui", format!("Iced failed to run: {e}")))
 }

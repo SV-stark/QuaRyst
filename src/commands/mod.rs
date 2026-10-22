@@ -305,6 +305,7 @@ impl AppStateBuilder {
 mod tests {
     use super::*;
     use crate::indexer::searcher::SearchResult;
+    use compact_str::CompactString;
     use tempfile::tempdir;
 
     #[test]
@@ -313,7 +314,7 @@ mod tests {
         let csv_path = temp_dir.path().join("test.csv");
         let results = vec![
             SearchResult::builder()
-                .file_path("test.txt".to_string())
+                .file_path(CompactString::from("test.txt"))
                 .score(1.0)
                 .matched_terms(vec![])
                 .snippets(vec![])

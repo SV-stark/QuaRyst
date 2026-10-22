@@ -37,7 +37,7 @@ impl From<SearchResult> for FileItem {
         let path_clone = r.file_path.clone();
         Self {
             score: r.score,
-            path: r.file_path,
+            path: r.file_path.to_string(),
             // Fall back to the file name; a document with neither a title nor a
             // parseable path still needs something to display.
             title: r.title.as_ref().map_or_else(
@@ -276,7 +276,7 @@ mod tests {
     #[test]
     fn file_item_falls_back_to_the_file_name_when_a_document_has_no_title() {
         let converted = FileItem::from(SearchResult {
-            file_path: "C:\\docs\\report.pdf".to_string(),
+            file_path: compact_str::CompactString::from("C:\\docs\\report.pdf"),
             score: 2.0,
             title: None,
             extension: Some(compact("pdf")),
@@ -292,7 +292,7 @@ mod tests {
     #[test]
     fn a_document_title_wins_over_the_file_name() {
         let converted = FileItem::from(SearchResult {
-            file_path: "C:\\docs\\report.pdf".to_string(),
+            file_path: compact_str::CompactString::from("C:\\docs\\report.pdf"),
             score: 1.0,
             title: Some(compact("Quarterly Report")),
             extension: Some(compact("pdf")),

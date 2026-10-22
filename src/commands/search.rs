@@ -49,39 +49,6 @@ pub async fn search_query_internal(
 
     let enable_ocr = state.settings_cache.load().enable_ocr;
 
-    // Concurrently, not sequentially: each extraction is I/O + CPU bound and
-    // independent, so a page of 50 results should not cost 50 round trips.
-    //
-    // `JoinSet` is used rather than a `Vec<JoinHandle>` because it drops the
-    // collection as soon as every task has been awaited, so no handles are left
-    // dangling when an early error returns.
-    let mut tasks = tokio::task::JoinSet::new();
-
-    for result in results
-        .iter()
-        .take(crate::snippet::MAX_SNIPPET_FILES_PER_QUERY)
-    {
-        let path = result.file_path.clone();
-        let query = query.clone();
-        tasks.spawn(async move {
-            let outcome =
-                crate::snippet::generate_snippets(&path, None, &query, case_sensitive, enable_ocr)
-                    .await;
-            (path, outcome)
-        });
-    }
-
-    let mut by_path: std::collections::HashMap<String, crate::snippet::SnippetOutcome> =
-        std::collections::HashMap::new();
-    while let Some(joined) = tasks.join_next().await {
-        match joined {
-            Ok((path, outcome)) => {
-                by_path.insert(path, outcome);
-            }
-            Err(e) => tracing::warn!("Snippet task failed: {e}"),
-        }
-    }
-
     // A case-sensitive query drops hits whose text does not contain the exact
     // spelling. This is the only place casing can be enforced, because the index
     // stores lowercased terms only.
@@ -90,16 +57,74 @@ pub async fn search_query_internal(
             &crate::indexer::query_parser::extract_highlight_terms(&query, case_sensitive),
         );
 
-    results.retain(|result| {
-        by_path
-            .get(&result.file_path)
-            // Not examined (beyond the snippet cap): keep it, the indexer matched it.
-            .is_none_or(|outcome| !enforce_case || outcome.case_match)
-    });
+    // Phase B (disk extraction) is now a *fallback*, not the primary path.
+    //
+    // Snippets are rendered from the stored `content_preview` (bounded ~4 KB)
+    // during Tantivy result assembly, so the common case costs zero disk I/O.
+    // We only fall back to extracting from disk when:
+    //   - the match fell outside the preview window (stored snippet empty), or
+    //   - case-sensitive filtering needs `case_match` from the full text.
+    let needs_disk: Vec<compact_str::CompactString> = if enforce_case {
+        results.iter().map(|r| r.file_path.clone()).collect()
+    } else {
+        results
+            .iter()
+            .filter(|r| r.snippets.is_empty())
+            .map(|r| r.file_path.clone())
+            .collect()
+    };
 
-    for result in &mut results {
-        if let Some(outcome) = by_path.get(&result.file_path) {
-            result.snippets = outcome.snippets.clone();
+    if !needs_disk.is_empty() {
+        // Concurrently, not sequentially: each extraction is I/O + CPU bound
+        // and independent.
+        let mut tasks = tokio::task::JoinSet::new();
+
+        for path in needs_disk
+            .iter()
+            .take(crate::snippet::MAX_SNIPPET_FILES_PER_QUERY)
+        {
+            let path = path.clone();
+            let query = query.clone();
+            tasks.spawn(async move {
+                let outcome = crate::snippet::generate_snippets(
+                    &path,
+                    None,
+                    &query,
+                    case_sensitive,
+                    enable_ocr,
+                )
+                .await;
+                (path, outcome)
+            });
+        }
+
+        let mut by_path: std::collections::HashMap<
+            compact_str::CompactString,
+            crate::snippet::SnippetOutcome,
+        > = std::collections::HashMap::new();
+        while let Some(joined) = tasks.join_next().await {
+            match joined {
+                Ok((path, outcome)) => {
+                    by_path.insert(path, outcome);
+                }
+                Err(e) => tracing::warn!("Snippet task failed: {e}"),
+            }
+        }
+
+        if enforce_case {
+            results.retain(|result| {
+                by_path
+                    .get(&result.file_path)
+                    .is_none_or(|outcome| outcome.case_match)
+            });
+        }
+
+        for result in &mut results {
+            if let Some(outcome) = by_path.get(&result.file_path)
+                && !outcome.snippets.is_empty()
+            {
+                result.snippets = outcome.snippets.clone();
+            }
         }
     }
 

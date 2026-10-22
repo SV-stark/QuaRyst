@@ -138,11 +138,50 @@ pub fn update(app: &mut App, message: Message) -> Task<Message> {
             }
             Task::none()
         }
+        Message::ToggleResultSelection(path) => {
+            if app.selected_paths.contains(&path) {
+                app.selected_paths.remove(&path);
+            } else {
+                app.selected_paths.insert(path);
+            }
+            Task::none()
+        }
+        Message::ClearSelection => {
+            app.selected_paths.clear();
+            Task::none()
+        }
+        Message::CopySelectedPaths => {
+            let paths: Vec<String> = app.selected_paths.iter().cloned().collect();
+            if paths.is_empty() {
+                return Task::none();
+            }
+            let text = paths.join("\n");
+            if let Err(e) = arboard::Clipboard::new().and_then(|mut c| c.set_text(text)) {
+                tracing::warn!("Clipboard write failed: {e}");
+            }
+            Task::none()
+        }
+        Message::OpenSelectedFiles => {
+            for path in &app.selected_paths {
+                let _ = opener::open(path);
+            }
+            Task::none()
+        }
+        Message::RevealSelectedInFolder => {
+            for path in &app.selected_paths {
+                let _ = opener::reveal(path);
+            }
+            Task::none()
+        }
         Message::PreviewLoaded(id, preview) => {
             if id == app.active_preview_id.load(Ordering::Relaxed) {
                 app.preview_result = Some(preview);
                 app.is_loading_preview = false;
             }
+            Task::none()
+        }
+        Message::ResultsScrolled(offset) => {
+            app.scroll_offset = offset;
             Task::none()
         }
         Message::ItemHovered(idx) => {
@@ -691,7 +730,7 @@ pub fn update(app: &mut App, message: Message) -> Task<Message> {
                 .results
                 .iter()
                 .map(|item| crate::indexer::searcher::SearchResult {
-                    file_path: item.path.clone(),
+                    file_path: item.path.clone().into(),
                     score: item.score,
                     title: Some(compact_str::CompactString::from(item.title.clone())),
                     extension: item.extension.clone(),

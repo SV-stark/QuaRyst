@@ -637,6 +637,7 @@ fn match_score(name: &str, query_lower: &str) -> Option<f32> {
         let gap_penalty = (span - query_len as f32).max(0.0);
         #[allow(clippy::cast_precision_loss)]
         let position = start as f32;
+        #[allow(clippy::suboptimal_flops)]
         name_len.mul_add(0.001, position.mul_add(0.01, 3.0 + gap_penalty * 0.1))
     })
 }

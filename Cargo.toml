@@ -1,6 +1,6 @@
 [package]
 name = "flash-search"
-version = "0.18.2"
+version = "0.18.3"
 description = "Ultrafast local text search"
 authors = ["Flash Search Team"]
 edition = "2024"
@@ -27,6 +27,7 @@ image = { version = "0.25", default-features = false, features = [
 [dependencies]
 # UI Framework
 iced = { version = "0.14", features = ["image", "svg", "tokio", "lazy"] }
+iced_aw = { version = "0.14", features = ["spinner", "badge", "card"] }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }

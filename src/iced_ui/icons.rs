@@ -6,6 +6,10 @@ pub const FONT: iced::Font = iced::Font::with_name("lucide");
 // Load the pre-built Lucide font from assets
 pub const FONT_BYTES: &[u8] = include_bytes!("../../assets/lucide.ttf");
 
+// Load Inter variable font for polished typography
+pub const INTER_FONT_BYTES: &[u8] = include_bytes!("../../assets/InterVariable.ttf");
+pub const INTER_FONT: iced::Font = iced::Font::with_name("Inter");
+
 /// Icon name to Unicode character mapping for Lucide font
 pub fn get_icon_char(name: &str) -> char {
     match name {
@@ -69,6 +73,32 @@ pub fn get_icon_char(name: &str) -> char {
 #[must_use]
 pub fn icon<'a>(name: &str) -> Text<'a> {
     text(get_icon_char(name).to_string()).font(FONT)
+}
+
+/// Maps a file extension to a Lucide icon name for visual file-type identification.
+#[must_use]
+pub fn extension_icon(ext: Option<&str>) -> &'static str {
+    match ext.map(str::to_ascii_lowercase).as_deref() {
+        Some(
+            "rs" | "py" | "js" | "ts" | "jsx" | "tsx" | "go" | "c" | "cpp" | "h" | "hpp" | "java"
+            | "cs" | "html" | "css" | "scss" | "less",
+        ) => "file-code",
+        Some("json" | "yaml" | "yml" | "toml" | "xml") => "file-json",
+        Some(
+            "md" | "markdown" | "rst" | "txt" | "pdf" | "doc" | "docx" | "odt" | "rtf" | "log",
+        ) => "file-text",
+        Some("xls" | "xlsx" | "ods" | "csv") => "file-spreadsheet",
+        Some("ppt" | "pptx" | "odp") => "presentation",
+        Some("png" | "jpg" | "jpeg" | "gif" | "bmp" | "webp" | "svg" | "ico" | "tiff") => {
+            "file-image"
+        }
+        Some("mp3" | "wav" | "flac" | "ogg" | "aac" | "m4a") => "music",
+        Some("mp4" | "avi" | "mkv" | "mov" | "webm") => "video",
+        Some("zip" | "tar" | "gz" | "7z" | "rar" | "bz2") => "archive",
+        Some("exe" | "msi" | "dll" | "so" | "dylib") => "cog",
+        Some("sh" | "bash" | "zsh" | "fish" | "bat" | "cmd" | "ps1") => "terminal",
+        _ => "file",
+    }
 }
 
 /// For the old `load_icon` helper signature

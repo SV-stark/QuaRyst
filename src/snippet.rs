@@ -253,7 +253,11 @@ fn extract_document(path: &Path, config: &xberg::ExtractionConfig) -> Result<Par
 /// entry point — instead of `snippet_from_doc(&doc)`. Both share the same
 /// tokenizer and fragment-selection logic, so the output is equivalent, but
 /// `snippet` does not require the text to be present in the index's doc store.
-fn render_snippet(content: &str, terms: &[String], case_sensitive: bool) -> Option<String> {
+pub(crate) fn render_snippet(
+    content: &str,
+    terms: &[String],
+    case_sensitive: bool,
+) -> Option<String> {
     use tantivy::Score;
     use tantivy::snippet::SnippetGenerator;
     use tantivy::tokenizer::{RemoveLongFilter, SimpleTokenizer, TextAnalyzer, TokenStream};

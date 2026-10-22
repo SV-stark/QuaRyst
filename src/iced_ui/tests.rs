@@ -182,7 +182,7 @@ fn test_format_size() {
 #[test]
 fn test_file_item_from_search_result() {
     let sr = SearchResult::builder()
-        .file_path("C:\\path\\to\\file.txt".to_string())
+        .file_path(compact_str::CompactString::from("C:\\path\\to\\file.txt"))
         .score(0.95)
         .maybe_title(Some(CompactString::from("My File")))
         .maybe_extension(Some(CompactString::from("txt")))

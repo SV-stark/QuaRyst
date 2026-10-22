@@ -194,9 +194,16 @@ fn top_navigation(app: &App) -> Element<'_, Message> {
             if app.is_searching {
                 Element::from(
                     container(
-                        text("Searching...")
-                            .size(theme::fs(12.0))
-                            .style(theme::dim_text_style()),
+                        row![
+                            iced_aw::Spinner::new()
+                                .width(iced::Length::Fixed(14.0))
+                                .height(iced::Length::Fixed(14.0)),
+                            text("Searching...")
+                                .size(theme::fs(12.0))
+                                .style(theme::dim_text_style()),
+                        ]
+                        .spacing(6)
+                        .align_y(Alignment::Center),
                     )
                     .padding(Padding::from([4, 12])),
                 )
