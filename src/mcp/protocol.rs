@@ -78,7 +78,7 @@ pub fn initialize_result() -> Value {
             "tools": { "listChanged": false }
         },
         "serverInfo": {
-            "name": "flash-search",
+            "name": "quaryst",
             "version": env!("CARGO_PKG_VERSION"),
         }
     })

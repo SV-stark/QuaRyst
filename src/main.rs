@@ -16,14 +16,14 @@ fn init_logging(app_data_dir: &std::path::Path) {
     let log_dir = app_data_dir.join("logs");
     std::fs::create_dir_all(&log_dir).ok();
 
-    let file_appender = rolling::daily(&log_dir, "flash-search.log");
+    let file_appender = rolling::daily(&log_dir, "quaryst.log");
     let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
 
     // Keep the guard alive for the lifetime of the program
     let _ = LOG_GUARD.set(guard);
 
     let env_filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("flash_search=info,xberg=info"));
+        .unwrap_or_else(|_| EnvFilter::new("quaryst=info,xberg=info"));
 
     tracing_subscriber::registry()
         .with(env_filter)
@@ -33,7 +33,7 @@ fn init_logging(app_data_dir: &std::path::Path) {
 
     log_panics::init();
 
-    info!("Flash Search starting up");
+    info!("QuaRyst starting up");
 
     // Prune logs older than 30 days
     prune_old_logs(&log_dir);
@@ -59,7 +59,7 @@ fn prune_old_logs(log_dir: &std::path::Path) {
 fn spawn_update_checker() {
     tokio::task::spawn_blocking(|| {
         tracing::info!("Checking for updates...");
-        match flash_search::system::updater::check_for_updates() {
+        match quaryst::system::updater::check_for_updates() {
             Ok(check) => {
                 if check.update_available {
                     tracing::info!(
@@ -97,7 +97,7 @@ fn handle_cli(args: &[String]) {
         }
     };
 
-    let run_result = rt.block_on(async { flash_search::run_cli(query, is_json, None).await });
+    let run_result = rt.block_on(async { quaryst::run_cli(query, is_json, None).await });
 
     if let Err(e) = run_result {
         eprintln!("CLI Error: {e}");
@@ -172,7 +172,7 @@ fn try_lock_app<'a>(
             // Refuse to start rather than risk two writers on one index.
             tracing::error!(
                 "Index lock at {} is held but the owning process is gone. \
-                 Close any other Flash Search instance, or delete the lock \
+                 Close any other QuaRyst instance, or delete the lock \
                  file if none is running, then try again.",
                 lock_path.display()
             );
@@ -203,7 +203,7 @@ fn main() {
     }
 
     let app_dir =
-        flash_search::get_app_data_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+        quaryst::get_app_data_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
     if let Err(e) = std::fs::create_dir_all(&app_dir) {
         eprintln!(
             "Error: failed to create the data directory at {}.",
@@ -251,11 +251,11 @@ fn main() {
         }
     };
 
-    flash_search::parsers::ensure_initialized();
+    quaryst::parsers::ensure_initialized();
 
     let rt = match tokio::runtime::Builder::new_multi_thread()
         .enable_all()
-        .thread_name("flash-search-worker")
+        .thread_name("quaryst-worker")
         .build()
     {
         Ok(rt) => rt,
@@ -277,16 +277,16 @@ fn main() {
     rt.spawn(async {
         if tokio::signal::ctrl_c().await.is_ok() {
             info!("Shutdown signal received");
-            flash_search::request_shutdown();
+            quaryst::request_shutdown();
         }
     });
 
     // Run the UI
-    let result = flash_search::run_ui(initial_dir);
+    let result = quaryst::run_ui(initial_dir);
 
     // Signal background threads, then let the runtime drain so their shutdown
     // paths complete before we release the index lock.
-    flash_search::request_shutdown();
+    quaryst::request_shutdown();
     rt.shutdown_timeout(std::time::Duration::from_secs(3));
 
     // Keep the lock alive until after the UI exits and the runtime has drained.

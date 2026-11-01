@@ -1,14 +1,14 @@
 [package]
-name = "flash-search"
+name = "quaryst"
 version = "0.18.3"
 description = "Ultrafast local text search"
-authors = ["Flash Search Team"]
+authors = ["QuaRyst Team"]
 edition = "2024"
 rust-version = "1.95.0"
 resolver = "3"
 
 [lib]
-name = "flash_search"
+name = "quaryst"
 
 [features]
 default = []

@@ -1,6 +1,6 @@
-# Contributing to Flash Search
+# Contributing to QuaRyst
 
-Thank you for your interest in contributing to Flash Search!
+Thank you for your interest in contributing to QuaRyst!
 
 ## Development Setup
 
@@ -9,8 +9,8 @@ Thank you for your interest in contributing to Flash Search!
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 # Clone and setup
-git clone https://github.com/yourusername/flash-search.git
-cd flash-search
+git clone https://github.com/SV-stark/findall.git
+cd findall
 
 # Run development server
 cargo run

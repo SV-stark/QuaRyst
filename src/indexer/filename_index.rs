@@ -379,7 +379,7 @@ impl FilenameIndex {
             }
             Err(_) => {
                 std::thread::Builder::new()
-                    .name("flash-search-filename-index".to_string())
+                    .name("quaryst-filename-index".to_string())
                     .spawn(task)
                     .map_err(|e| warn!("Failed to spawn filename index task: {e}"))
                     .ok();

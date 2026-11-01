@@ -3,7 +3,7 @@ use auto_launch::{AutoLaunch, AutoLaunchBuilder};
 use std::env;
 
 /// Identifier recorded with the OS auto-start registration.
-const APP_ID: &str = "com.flashsearch";
+const APP_ID: &str = "com.quaryst";
 
 /// Builds the auto-start registrar for the running executable.
 ///

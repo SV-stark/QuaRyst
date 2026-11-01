@@ -1,6 +1,6 @@
-# Flash Search Architecture
+# QuaRyst Architecture
 
-This document provides a high-level overview of the components that make up Flash Search.
+This document provides a high-level overview of the components that make up QuaRyst.
 
 ## Architecture Diagram
 

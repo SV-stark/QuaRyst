@@ -27,8 +27,8 @@ pub fn view(app: &App) -> iced::Element<'_, Message> {
 #[must_use]
 pub fn app_title(app: &App) -> String {
     app.rebuild_status.as_ref().map_or_else(
-        || "Flash Search".to_string(),
-        |status| format!("Flash Search - {status}"),
+        || "QuaRyst".to_string(),
+        |status| format!("QuaRyst - {status}"),
     )
 }
 

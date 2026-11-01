@@ -1,8 +1,8 @@
 #![allow(clippy::large_futures)]
 
-use flash_search::error::Result;
-use flash_search::indexer::searcher::SearchParams;
-use flash_search::{indexer::IndexManager, metadata::MetadataDb};
+use quaryst::error::Result;
+use quaryst::indexer::searcher::SearchParams;
+use quaryst::{indexer::IndexManager, metadata::MetadataDb};
 use std::fs;
 use std::sync::Arc;
 use tempfile::tempdir;
@@ -24,15 +24,15 @@ async fn test_end_to_end_search() -> Result<()> {
     let md_path = data_dir.join("notes.md");
     fs::write(
         &md_path,
-        "# Notes\n\nSome markdown content with unique keyword: flashsearchintegrationtest",
+        "# Notes\n\nSome markdown content with unique keyword: quarystintegrationtest",
     )?;
 
     let indexer = Arc::new(IndexManager::open(&index_dir, 100)?);
     let metadata_db_path = index_dir.join("metadata.redb");
     let _metadata_db = Arc::new(MetadataDb::open(&metadata_db_path)?.0);
 
-    let txt_doc = flash_search::parsers::parse_file(&txt_path, false).await?;
-    let md_doc = flash_search::parsers::parse_file(&md_path, false).await?;
+    let txt_doc = quaryst::parsers::parse_file(&txt_path, false).await?;
+    let md_doc = quaryst::parsers::parse_file(&md_path, false).await?;
 
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -69,7 +69,7 @@ async fn test_end_to_end_search() -> Result<()> {
     );
 
     // The on-disk snippet path must still find the term and highlight it.
-    let outcome = flash_search::snippet::generate_snippets(
+    let outcome = quaryst::snippet::generate_snippets(
         &results[0].file_path,
         None,
         "unique test string",
@@ -90,7 +90,7 @@ async fn test_end_to_end_search() -> Result<()> {
     let results = indexer
         .search(
             SearchParams::builder()
-                .query("flashsearchintegrationtest")
+                .query("quarystintegrationtest")
                 .limit(10)
                 .case_sensitive(false)
                 .build(),
@@ -285,8 +285,8 @@ fn test_metadata_paths_under_and_remove_files() -> Result<()> {
 // Scanner: the indexing pipeline end to end
 // ---------------------------------------------------------------------------
 
-fn test_settings() -> flash_search::settings::AppSettings {
-    flash_search::settings::AppSettings {
+fn test_settings() -> quaryst::settings::AppSettings {
+    quaryst::settings::AppSettings {
         index_file_size_limit_mb: 100,
         indexing_threads: 2,
         auto_index_on_startup: false,
@@ -298,9 +298,9 @@ fn test_settings() -> flash_search::settings::AppSettings {
 
 fn build_scanner(
     root: &std::path::Path,
-    settings: flash_search::settings::AppSettings,
+    settings: quaryst::settings::AppSettings,
 ) -> Result<(
-    Arc<flash_search::scanner::Scanner>,
+    Arc<quaryst::scanner::Scanner>,
     Arc<IndexManager>,
     Arc<MetadataDb>,
 )> {
@@ -309,7 +309,7 @@ fn build_scanner(
     // The scanner reads a shared live settings cell, so a test that wants to
     // change settings mid-run must hold the same `Arc` and store into it.
     let settings_cache = Arc::new(arc_swap::ArcSwap::from_pointee(settings));
-    let scanner = Arc::new(flash_search::scanner::Scanner::new(
+    let scanner = Arc::new(quaryst::scanner::Scanner::new(
         indexer.clone(),
         metadata_db.clone(),
         None,
@@ -330,7 +330,7 @@ async fn test_scan_directory_indexes_and_is_idempotent() -> Result<()> {
     fs::write(data.join("c.bin"), "gamma uniqueword")?;
 
     let (scanner, indexer, metadata_db) = build_scanner(temp.path(), test_settings())?;
-    let cancel = flash_search::scanner::cancel::CancelToken::never();
+    let cancel = quaryst::scanner::cancel::CancelToken::never();
 
     let report = scanner
         .scan_directory(data.clone(), vec![], cancel.clone())
@@ -386,7 +386,7 @@ async fn test_scan_honours_exclude_patterns() -> Result<()> {
         .scan_directory(
             data,
             vec!["skipme/".to_string()],
-            flash_search::scanner::cancel::CancelToken::never(),
+            quaryst::scanner::cancel::CancelToken::never(),
         )
         .await?;
 
@@ -422,7 +422,7 @@ async fn test_scan_skips_files_over_the_size_limit() -> Result<()> {
         .scan_directory(
             data,
             vec![],
-            flash_search::scanner::cancel::CancelToken::never(),
+            quaryst::scanner::cancel::CancelToken::never(),
         )
         .await?;
 
@@ -448,7 +448,7 @@ async fn test_cancelled_scan_flushes_what_it_already_wrote() -> Result<()> {
 
     let (scanner, indexer, metadata_db) = build_scanner(temp.path(), test_settings())?;
 
-    let control = flash_search::scanner::cancel::CancellationController::new();
+    let control = quaryst::scanner::cancel::CancellationController::new();
     let token = control.begin();
     // Cancel before the scan starts; the walker stops immediately.
     control.cancel();
@@ -478,7 +478,7 @@ async fn test_a_new_scan_supersedes_the_previous_one() -> Result<()> {
     // Regression: `JoinHandle::abort` cannot stop `spawn_blocking` stages, so the
     // old shared `AtomicBool` was reset to `false` by the new run while the old
     // run's stages were still alive and writing.
-    let control = flash_search::scanner::cancel::CancellationController::new();
+    let control = quaryst::scanner::cancel::CancellationController::new();
     let first = control.begin();
     let second = control.begin();
     assert!(first.is_cancelled());
@@ -511,7 +511,7 @@ async fn test_watched_edits_reach_the_index() -> Result<()> {
     let indexer = Arc::new(IndexManager::open(&temp.path().join("index"), 64)?);
     let metadata_db = Arc::new(MetadataDb::open(&temp.path().join("metadata.redb"))?.0);
 
-    let watcher = flash_search::watcher::WatcherManager::new(
+    let watcher = quaryst::watcher::WatcherManager::new(
         indexer.clone(),
         metadata_db.clone(),
         std::collections::HashSet::from(["txt".to_string()]),
@@ -521,7 +521,7 @@ async fn test_watched_edits_reach_the_index() -> Result<()> {
     // Initial index.
     watcher
         .event_tx()
-        .send((file.clone(), flash_search::watcher::WatcherAction::Index))
+        .send((file.clone(), quaryst::watcher::WatcherAction::Index))
         .await
         .ok();
     // Debounce window is 500 ms; give the processor time to flush.
@@ -542,7 +542,7 @@ async fn test_watched_edits_reach_the_index() -> Result<()> {
     fs::write(&file, "replaced brandnewterm")?;
     watcher
         .event_tx()
-        .send((file.clone(), flash_search::watcher::WatcherAction::Index))
+        .send((file.clone(), quaryst::watcher::WatcherAction::Index))
         .await
         .ok();
     tokio::time::sleep(std::time::Duration::from_millis(1_200)).await;
@@ -562,7 +562,7 @@ async fn test_watched_edits_reach_the_index() -> Result<()> {
     fs::remove_file(&file)?;
     watcher
         .event_tx()
-        .send((file.clone(), flash_search::watcher::WatcherAction::Remove))
+        .send((file.clone(), quaryst::watcher::WatcherAction::Remove))
         .await
         .ok();
     tokio::time::sleep(std::time::Duration::from_millis(1_200)).await;
@@ -595,7 +595,7 @@ async fn test_purge_directory_removes_only_that_subtree() -> Result<()> {
         .scan_directory(
             data.clone(),
             vec![],
-            flash_search::scanner::cancel::CancelToken::never(),
+            quaryst::scanner::cancel::CancelToken::never(),
         )
         .await?;
 
@@ -608,7 +608,7 @@ async fn test_purge_directory_removes_only_that_subtree() -> Result<()> {
         metadata_bg.remove_files(&borrowed)?;
         indexer_bg.remove_documents_batch(&paths)?;
         indexer_bg.commit()?;
-        Ok::<usize, flash_search::error::FlashError>(paths.len())
+        Ok::<usize, quaryst::error::FlashError>(paths.len())
     })
     .await
     .expect("purge task must not panic")?;
@@ -639,10 +639,10 @@ async fn test_purge_directory_removes_only_that_subtree() -> Result<()> {
 /// that the scanner and watcher read from.
 #[tokio::test]
 async fn test_save_settings_reaches_the_shared_cache() -> Result<()> {
-    use flash_search::commands::AppState;
-    use flash_search::scanner::{ProgressEvent, Scanner};
-    use flash_search::settings::{AppSettings, SettingsManager};
-    use flash_search::watcher::WatcherManager;
+    use quaryst::commands::AppState;
+    use quaryst::scanner::{ProgressEvent, Scanner};
+    use quaryst::settings::{AppSettings, SettingsManager};
+    use quaryst::watcher::WatcherManager;
 
     let temp_workspace = tempdir()?;
     let index_dir = temp_workspace.path().join("index");
@@ -695,8 +695,8 @@ async fn test_save_settings_reaches_the_shared_cache() -> Result<()> {
     updated.exclude_patterns = vec!["node_modules".to_string()];
     updated.index_dirs = vec![data_dir.to_string_lossy().to_string()];
 
-    flash_search::commands::save_settings_internal(&updated, &state)
-        .map_err(|e| flash_search::error::FlashError::config("save_settings", e))?;
+    quaryst::commands::save_settings_internal(&updated, &state)
+        .map_err(|e| quaryst::error::FlashError::config("save_settings", e))?;
 
     // The scanner reads its configuration from this cache on every run, so a
     // save that skipped it left indexing using the startup values.

@@ -2,12 +2,12 @@
 
 ## Project Overview
 
-**Flash Search** is an ultrafast local full-text search application built purely with Rust. This document provides comprehensive instructions for AI coding agents working on this codebase.
+**QuaRyst** is an ultrafast local full-text search application built purely with Rust. This document provides comprehensive instructions for AI coding agents working on this codebase.
 
 ## Architecture Overview
 
 ┌─────────────────────────────────────────────────────────────┐
-│                     Flash Search                             │
+│                        QuaRyst                              │
 ├─────────────────────────────────────────────────────────────┤
 │  UI (Iced)                                                  │
 │  ├── iced_ui/       - High-performance GUI components       │
@@ -28,7 +28,7 @@
 ## Project Structure
 
 ```
-flash-search/
+quaryst/
 ├── src/
 │   ├── main.rs              # Application entry point
 │   ├── lib.rs               # Library exports
@@ -361,7 +361,7 @@ cargo test
 ## Contact
 
 For questions about implementation details, refer to:
-- GitHub Issues: https://github.com/yourusername/flash-search/issues
+- GitHub Issues: https://github.com/SV-stark/findall/issues
 - Architecture Decisions: See `docs/adr/` directory
 
 ---

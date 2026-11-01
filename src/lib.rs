@@ -47,11 +47,11 @@ pub fn get_app_data_dir() -> std::result::Result<PathBuf, FlashError> {
 
     #[cfg(not(target_os = "windows"))]
     let path = dirs::data_dir()
-        .or_else(|| dirs::home_dir().map(|h| h.join(".flash-search")))
+        .or_else(|| dirs::home_dir().map(|h| h.join(".quaryst")))
         .ok_or_else(|| FlashError::config("data_dir", "Could not find data directory"))?;
 
     let mut path = path;
-    path.push("com.flashsearch");
+    path.push("com.quaryst");
     Ok(path)
 }
 
@@ -254,7 +254,7 @@ pub async fn run_cli(
             }
         }
     } else {
-        println!("Usage: flash-search --cli <query> [--json]");
+        println!("Usage: quaryst --cli <query> [--json]");
     }
     Ok(())
 }

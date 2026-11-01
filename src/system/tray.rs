@@ -14,7 +14,7 @@ pub fn create_tray_icon() -> Result<TrayIcon> {
         .map_err(|e| FlashError::config("tray_icon", e.to_string()))?;
 
     let tray_menu = Menu::new();
-    let show_i = MenuItem::with_id("show", "Show Flash Search", true, None);
+    let show_i = MenuItem::with_id("show", "Show QuaRyst", true, None);
     let quit_i = MenuItem::with_id("quit", "Quit", true, None);
 
     let _ = tray_menu.append(&show_i);
@@ -22,9 +22,9 @@ pub fn create_tray_icon() -> Result<TrayIcon> {
     let _ = tray_menu.append(&quit_i);
 
     let tray_icon = TrayIconBuilder::new()
-        .with_id("com.flashsearch")
+        .with_id("com.quaryst")
         .with_menu(Box::new(tray_menu))
-        .with_tooltip("Flash Search")
+        .with_tooltip("QuaRyst")
         .with_icon(icon)
         .build()
         .map_err(|e| FlashError::config("tray_icon", e.to_string()))?;

@@ -490,7 +490,7 @@ impl IndexSearcher {
         // window appearing for no benefit.
         let warm_reader = reader;
         std::thread::Builder::new()
-            .name("flash-search-index-warm".to_string())
+            .name("quaryst-index-warm".to_string())
             .spawn(move || {
                 let searcher = warm_reader.searcher();
                 let _ = searcher.search(
@@ -894,7 +894,7 @@ impl IndexSearcher {
             }
             Err(_) => {
                 std::thread::Builder::new()
-                    .name("flash-search-index-size".to_string())
+                    .name("quaryst-index-size".to_string())
                     .spawn(measure)
                     .ok();
             }

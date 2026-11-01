@@ -3,7 +3,7 @@ use std::sync::Arc;
 use thiserror::Error;
 
 #[derive(Error, Debug, Clone)]
-pub enum FlashError {
+pub enum QuaRystError {
     #[error("IO error: {0}")]
     Io(Arc<std::io::Error>),
 
@@ -49,16 +49,19 @@ pub enum FlashError {
     },
 }
 
-impl From<std::io::Error> for FlashError {
+/// Backward compatibility alias during transition to QuaRyst.
+pub type FlashError = QuaRystError;
+
+impl From<std::io::Error> for QuaRystError {
     fn from(e: std::io::Error) -> Self {
         Self::Io(Arc::new(e))
     }
 }
 
-pub type Result<T> = std::result::Result<T, FlashError>;
+pub type Result<T> = std::result::Result<T, QuaRystError>;
 
 // Helper constructors for common error patterns
-impl FlashError {
+impl QuaRystError {
     pub fn parse<P: Into<PathBuf>, S: Into<String>>(path: P, cause: S) -> Self {
         Self::Parse {
             path: path.into(),
@@ -149,7 +152,7 @@ impl FlashError {
     }
 }
 
-impl From<tantivy::TantivyError> for FlashError {
+impl From<tantivy::TantivyError> for QuaRystError {
     fn from(e: tantivy::TantivyError) -> Self {
         Self::Index {
             msg: e.to_string(),

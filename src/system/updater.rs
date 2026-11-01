@@ -14,7 +14,7 @@ pub fn check_for_updates() -> Result<UpdateCheckResult, String> {
     let updater = Update::configure()
         .repo_owner("SV-stark")
         .repo_name("findall")
-        .bin_name("flash-search")
+        .bin_name("quaryst")
         .current_version(current)
         .build()
         .map_err(|e| e.to_string())?;

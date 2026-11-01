@@ -323,7 +323,7 @@ async fn search_filenames(state: &Arc<AppState>, args: &Value) -> Result<Value, 
         // Not an error: the index is an opt-in setting, and the caller should
         // be told to fall back to `search` with a `path:` filter.
         return Ok(protocol::tool_result_text(
-            "The filename index is disabled in Flash Search settings, so name-only \
+            "The filename index is disabled in QuaRyst settings, so name-only \
              search is unavailable. Use `search` with a `path:` filter instead, which \
              searches the file path of indexed documents.",
         ));

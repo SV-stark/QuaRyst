@@ -41,7 +41,7 @@ pub fn copy_to_clipboard_internal(text: &str) -> Result<()> {
 pub async fn export_results_internal(results: Vec<SearchResult>, format: String) -> Result<()> {
     let mut dialog = rfd::AsyncFileDialog::new()
         .set_title("Export Search Results")
-        .set_file_name(format!("flash_search_results.{format}"));
+        .set_file_name(format!("quaryst_results.{format}"));
 
     if format == "csv" {
         dialog = dialog.add_filter("CSV File", &["csv"]);

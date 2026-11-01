@@ -2,15 +2,15 @@
 !include "hooks.nsi"
 
 # Define application constants
-!define APP_NAME "Flash Search"
-!define APP_EXECUTABLE "flash-search.exe"
-!define APP_VERSION "0.10.0"
-!define APP_PUBLISHER "Flash Search Team"
-!define APP_URL "https://github.com/flash-search/flash-search"
+!define APP_NAME "QuaRyst"
+!define APP_EXECUTABLE "quaryst.exe"
+!define APP_VERSION "0.18.3"
+!define APP_PUBLISHER "QuaRyst Team"
+!define APP_URL "https://github.com/SV-stark/findall"
 !define APP_ICON "..\assets\icon.ico"
 
 Name "${APP_NAME}"
-OutFile "..\FlashSearchSetup.exe"
+OutFile "..\QuaRystSetup.exe"
 InstallDir "$PROGRAMFILES64\${APP_NAME}"
 InstallDirRegKey HKCU "Software\${APP_NAME}" ""
 RequestExecutionLevel admin

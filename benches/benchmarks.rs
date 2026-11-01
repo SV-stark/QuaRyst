@@ -1,6 +1,6 @@
 use divan::black_box;
-use flash_search::indexer::query_parser::{ParsedQuery, extract_highlight_terms};
-use flash_search::parsers::is_plaintext_fast_path;
+use quaryst::indexer::query_parser::{ParsedQuery, extract_highlight_terms};
+use quaryst::parsers::is_plaintext_fast_path;
 use std::path::Path;
 
 fn main() {

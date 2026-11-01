@@ -86,15 +86,15 @@ let config = ExtractionConfig {
 
 ---
 
-## Alternative: Flash Search Wrap Layer
+## Alternative: QuaRyst Wrap Layer
 
-If you want to bypass Kreuzberg’s registry or add pre/post logic unique to **Flash Search**, you can modify `src/parsers/mod.rs` inside the `parse_file` routing function:
+If you want to bypass Kreuzberg’s registry or add pre/post logic unique to **QuaRyst**, you can modify `src/parsers/mod.rs` inside the `parse_file` routing function:
 
 1.  Inspect the file type/extension.
 2.  If it’s an image (PNG/JPG) and needs OCR, route to your *own* custom function instead of calling `kreuzberg::extract_file_sync`.
 3.  Pack the results into a `ParsedDocument` struct.
 
-This is helpful if the OCR process is entirely decoupled from document extraction (e.g., running shell commands or calling specific binaries directly in Flash Search).
+This is helpful if the OCR process is entirely decoupled from document extraction (e.g., running shell commands or calling specific binaries directly in QuaRyst).
 
 > [!NOTE]
 > For the exact trait signatures of `OcrBackend` in Rust, please review the `kreuzberg` crate source or documentation using `cargo doc`. The global registry methods are verified fully operational.

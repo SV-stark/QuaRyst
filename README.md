@@ -1,7 +1,7 @@
-<h1 align="center">Flash Search</h1>
+<h1 align="center">QuaRyst</h1>
 
 <p align="center">
-  <img src="assets/logo.png" alt="Flash Search Logo" width="120">
+  <img src="assets/logo.png" alt="QuaRyst Logo" width="120">
 </p>
 
 <p align="center">
@@ -54,17 +54,17 @@
 
 **Windows (PowerShell):**
 ```powershell
-irm https://github.com/SV-stark/FindAll/releases/latest/download/flash-search-installer.ps1 | iex
+irm https://github.com/SV-stark/FindAll/releases/latest/download/quaryst-installer.ps1 | iex
 ```
 
 **macOS & Linux:**
 ```bash
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/SV-stark/FindAll/releases/latest/download/flash-search-installer.sh | sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/SV-stark/FindAll/releases/latest/download/quaryst-installer.sh | sh
 ```
 
 Or manually download the pre-built binaries for your platform from the [Releases](https://github.com/SV-stark/FindAll/releases) page.
 
-*Note: The installed application binary is called `flash-search`.*
+*Note: The installed application binary is called `quaryst`.*
 
 <h3 align="center">Build from Source</h3>
 
@@ -115,21 +115,21 @@ cargo run
 
 <h3 align="center">Command-Line Interface</h3>
 
-Flash Search includes a CLI mode for terminal-based querying and scripting:
+QuaRyst includes a CLI mode for terminal-based querying and scripting:
 
 ```bash
 # Basic terminal text search
-flash-search --cli "query"
+quaryst --cli "query"
 
 # Output as JSON 
-flash-search --cli "query" --json
+quaryst --cli "query" --json
 ```
 
 <h3 align="center">App Data & Logs</h3>
 
-Flash Search automatically manages its index database and rolling background logs (retained up to 30 days) locally in the `com.flashsearch` data directory:
-- **Windows**: `%AppData%\com.flashsearch` or `%LocalAppData%\com.flashsearch`
-- **macOS/Linux**: `~/.local/share/com.flashsearch` or `~/.config/com.flashsearch`
+QuaRyst automatically manages its index database and rolling background logs (retained up to 30 days) locally in the `com.quaryst` data directory:
+- **Windows**: `%AppData%\com.quaryst` or `%LocalAppData%\com.quaryst`
+- **macOS/Linux**: `~/.local/share/com.quaryst` or `~/.config/com.quaryst`
 
 <h2 align="center">🏗️ Tech Stack</h2>
 
@@ -160,7 +160,7 @@ Flash Search automatically manages its index database and rolling background log
 
 <div align="center">
 
-Flash Search leverages **[Xberg](https://github.com/xberg-io/xberg)**'s Rust-native text extraction engine to bypass traditional parsing bottlenecks. 
+QuaRyst leverages **[Xberg](https://github.com/xberg-io/xberg)**'s Rust-native text extraction engine to bypass traditional parsing bottlenecks. 
 
 Benchmarks on standard desktop hardware (e.g., AMD Ryzen 7 / Apple M-series):
 
@@ -179,7 +179,7 @@ Benchmarks on standard desktop hardware (e.g., AMD Ryzen 7 / Apple M-series):
 
 <div align="center">
 
-| Feature | Flash Search | AnyTXT | Windows Search | Recoll |
+| Feature | QuaRyst | AnyTXT | Windows Search | Recoll |
 |:---|:---|:---|:---|:---|
 | Startup Time | **Instant** | ~2s | System | ~3s |
 | Memory Overhead | **~30MB** | ~80MB | ~150MB+ | ~120MB |
@@ -250,7 +250,7 @@ This project is licensed under the GNU General Public License v3 - see the [LICE
 <h2 align="center">🙏 Acknowledgments</h2>
 
 
-Flash Search is built on the shoulders of giants. We are deeply grateful to the following projects:
+QuaRyst is built on the shoulders of giants. We are deeply grateful to the following projects:
 
 - **[Xberg](https://github.com/xberg-io/xberg)** - Our secret weapon for universal document parsing and high-performance OCR.
 - **[Tantivy](https://github.com/quickwit-oss/tantivy)** - The blazing-fast, index-based search engine that powers our core.

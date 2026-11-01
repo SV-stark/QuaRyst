@@ -4,16 +4,23 @@ use crate::error::{FlashError, Result};
 #[cfg(not(target_os = "windows"))]
 use crate::error::Result;
 
-/// Registry subkeys holding the "Search with Flash Search" shell verb.
+/// Registry subkeys holding the "Search with QuaRyst" shell verb.
 #[cfg(target_os = "windows")]
 const MENU_KEYS: [&str; 2] = [
+    r"Software\Classes\Directory\shell\QuaRyst",
+    r"Software\Classes\*\shell\QuaRyst",
+];
+
+/// Legacy registry subkeys for cleanup.
+#[cfg(target_os = "windows")]
+const LEGACY_MENU_KEYS: [&str; 2] = [
     r"Software\Classes\Directory\shell\FlashSearch",
     r"Software\Classes\*\shell\FlashSearch",
 ];
 
 /// Label shown in Explorer's context menu.
 #[cfg(target_os = "windows")]
-const MENU_LABEL: &str = "Search with Flash Search";
+const MENU_LABEL: &str = "Search with QuaRyst";
 
 #[cfg(not(target_os = "windows"))]
 pub fn register_context_menu(_enable: bool) -> Result<()> {
@@ -67,7 +74,7 @@ pub fn register_context_menu(enable: bool) -> Result<()> {
 
 #[cfg(target_os = "windows")]
 fn remove_context_menu(hkcu: &winreg::RegKey) {
-    for path in MENU_KEYS {
+    for path in MENU_KEYS.iter().chain(LEGACY_MENU_KEYS.iter()) {
         // A missing key is the desired end state, so a delete failure is only
         // worth reporting when the key actually still exists.
         if let Err(e) = hkcu.delete_subkey_all(path) {

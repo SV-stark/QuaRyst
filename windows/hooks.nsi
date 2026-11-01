@@ -82,7 +82,7 @@ FunctionEnd
 
 !macro customInstall
   # Add the installation directory to the user's PATH environment variable
-  # This allows running 'flash-search' from any terminal
+  # This allows running 'quaryst' from any terminal
   
   DetailPrint "Adding $INSTDIR to User PATH..."
   
@@ -122,5 +122,6 @@ FunctionEnd
   SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
 
   DetailPrint "Removing auto-launch registry entry..."
+  DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "com.quaryst"
   DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "com.flashsearch"
 !macroend
