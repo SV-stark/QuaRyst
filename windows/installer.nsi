@@ -4,7 +4,7 @@
 # Define application constants
 !define APP_NAME "QuaRyst"
 !define APP_EXECUTABLE "quaryst.exe"
-!define APP_VERSION "0.18.3"
+!define APP_VERSION "0.18.4"
 !define APP_PUBLISHER "QuaRyst Team"
 !define APP_URL "https://github.com/SV-stark/findall"
 !define APP_ICON "..\assets\icon.ico"
