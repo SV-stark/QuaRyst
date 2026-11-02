@@ -11,6 +11,7 @@ use crate::commands::AppState;
 use crate::scanner::ProgressEvent;
 use iced::Task;
 use parking_lot::Mutex;
+use shadcn_iced::prelude::ApplicationExt;
 use std::sync::Arc;
 
 /// Renders the active screen.
@@ -62,6 +63,7 @@ pub fn run_ui(
     .title(app_title)
     .theme(app_theme)
     .subscription(subscription)
+    .shadcn_iced()
     .font(icons::FONT_BYTES)
     .font(icons::INTER_FONT_BYTES)
     .default_font(icons::INTER_FONT)

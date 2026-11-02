@@ -4,12 +4,12 @@
 //! three-column layout, and the status bar. The panels it arranges live in
 //! sibling modules:
 //!
-//! - [`filters`] — sidebar filter sections and the active-filter chips
-//! - [`results`] — the result list and its empty states
-//! - [`preview`] — the right-hand document preview
-//! - [`welcome`] — the start screen shown when the query is empty
-//! - [`context_menu`] — the right-click overlay
-//! - [`snippet`] — snippet rendering, shared by `results` and `preview`
+//! - `filters` — sidebar filter sections and the active-filter chips
+//! - `results` — the result list and its empty states
+//! - `preview` — the right-hand document preview
+//! - `welcome` — the start screen shown when the query is empty
+//! - `context_menu` — the right-click overlay
+//! - `snippet` — snippet rendering, shared by `results` and `preview`
 //!
 //! Only the panel entry points are `pub(super)`. They are an implementation
 //! detail of this screen; the sole public item is [`search_view`], which
@@ -32,7 +32,7 @@ use preview::right_panel;
 use results::results_panel;
 
 pub fn search_view(app: &App) -> Element<'_, Message> {
-    let mut col = column![top_navigation(app)];
+    let mut col = column![top_navigation(app), shadcn_iced::separator::separator()];
 
     if let Some(state) = &app.state
         && state.db_corrupted
@@ -84,6 +84,7 @@ pub fn search_view(app: &App) -> Element<'_, Message> {
     }
 
     col.push(main_layout(app))
+        .push(shadcn_iced::separator::separator())
         .push(status_bar(app))
         .width(Length::Fill)
         .height(Length::Fill)
@@ -281,13 +282,20 @@ fn main_layout(app: &App) -> Element<'_, Message> {
 
     let body = row![
         sidebar,
+        shadcn_iced::separator::vertical_separator(),
         column![
             filter_chips(app),
+            if app.filter_extensions.is_empty() {
+                Element::from(Space::new().height(0))
+            } else {
+                Element::from(shadcn_iced::separator::separator())
+            },
             row![
-                results_panel(app),
+                container(results_panel(app)).width(Length::FillPortion(1)),
+                shadcn_iced::separator::vertical_separator(),
                 container(right_panel(app))
-                    .style(theme::sidebar_container)
-                    .width(Length::FillPortion(3)),
+                    .style(theme::main_content_container)
+                    .width(Length::FillPortion(1)),
             ]
             .height(Length::Fill)
         ]

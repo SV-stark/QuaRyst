@@ -106,8 +106,8 @@ fn exclude_patterns_can_be_emptied_entirely() {
         ..App::default()
     };
     app.commit_text_inputs();
-    assert!(app.settings.exclude_patterns.is_empty());
-    assert!(app.exclude_patterns_input.is_empty());
+    assert_eq!(app.settings.exclude_patterns, Vec::<String>::new());
+    assert_eq!(app.exclude_patterns_input, "");
 }
 
 /// Clicking a recent search must bump its count rather than adding a

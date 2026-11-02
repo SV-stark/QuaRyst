@@ -439,7 +439,7 @@ mod tests {
             Regex::new(r#"(?i)(ext|path|title|size|modified|date):(?:"([^"]*)"|(\S+))"#)
                 .expect("OPERATOR_REGEX must be a valid regex")
         });
-        assert!(!OPERATOR_REGEX.get().unwrap().as_str().is_empty());
+        assert_ne!(OPERATOR_REGEX.get().unwrap().as_str(), "");
     }
 
     #[test]
@@ -448,7 +448,7 @@ mod tests {
             Regex::new(r"(?i)^([<>]?)(\d+(?:\.\d+)?)(MB|KB|GB|B)?$")
                 .expect("SIZE_REGEX must be a valid regex")
         });
-        assert!(!SIZE_REGEX.get().unwrap().as_str().is_empty());
+        assert_ne!(SIZE_REGEX.get().unwrap().as_str(), "");
     }
 
     #[test]

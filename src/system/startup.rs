@@ -37,7 +37,7 @@ pub fn set_auto_start(enable: bool) -> Result<()> {
 
 /// Reports whether the OS currently has a launch-on-login entry registered.
 ///
-/// Used at startup to reconcile [`AppSettings::auto_start_on_boot`] with the
+/// Used at startup to reconcile [`crate::settings::AppSettings::auto_start_on_boot`] with the
 /// real OS state, so a checkbox the user never touched does not claim the app
 /// is registered when it is not.
 pub fn is_auto_start_enabled() -> Result<bool> {

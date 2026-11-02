@@ -98,11 +98,11 @@ pub(super) fn left_sidebar(app: &App) -> Element<'_, Message> {
 
     let filter_panel = column![
         filter_header,
-        Space::new().height(Length::Fixed(4.0)),
+        shadcn_iced::separator::separator(),
         filter_content,
     ]
     .spacing(14)
-    .padding(Padding::new(18.0));
+    .padding(Padding::new(16.0));
 
     container(filter_panel)
         .style(theme::sidebar_container)

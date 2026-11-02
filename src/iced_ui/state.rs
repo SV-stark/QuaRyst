@@ -741,16 +741,16 @@ impl App {
     }
 }
 
-/// The Iced theme for the current state.
-///
-/// `const` because Iced requires a plain `fn(&App) -> Theme`; it is called on
-/// every retheme.
-pub const fn app_theme(app: &App) -> iced::Theme {
-    if app.is_dark {
-        iced::Theme::Dark
+/// The Iced theme for the current state, built using `shadcn_iced` design tokens.
+pub fn app_theme(app: &App) -> iced::Theme {
+    let mode = if app.is_dark {
+        shadcn_iced::Mode::Dark
     } else {
-        iced::Theme::Light
-    }
+        shadcn_iced::Mode::Light
+    };
+    shadcn_iced::theme::zinc(mode)
+        .accent(shadcn_iced::theme::Accent::Blue)
+        .build()
 }
 
 impl App {

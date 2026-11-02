@@ -156,7 +156,7 @@ pub(super) fn results_panel(app: &App) -> Element<'_, Message> {
     col = col.push(results);
 
     container(col)
-        .width(Length::FillPortion(2))
+        .width(Length::Fill)
         .height(Length::Fill)
         .into()
 }
@@ -204,7 +204,7 @@ fn no_results_view(_app: &App) -> Element<'_, Message> {
     )
     .center_x(Length::Fill)
     .center_y(Length::Fill)
-    .width(Length::FillPortion(2))
+    .width(Length::Fill)
     .into()
 }
 

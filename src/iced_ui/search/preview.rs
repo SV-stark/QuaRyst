@@ -249,7 +249,7 @@ pub(super) fn right_panel(app: &App) -> Element<'_, Message> {
             )
             .height(Length::Fill);
 
-            column![header, body]
+            column![header, shadcn_iced::separator::separator(), body]
                 .width(Length::Fill)
                 .height(Length::Fill)
                 .into()

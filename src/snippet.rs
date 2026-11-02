@@ -6,7 +6,7 @@
 //! full decompress of each hit just to render one highlighted line.
 //!
 //! Snippets are therefore rebuilt from the file on disk. Tantivy is still used
-//! to do the hard part: its [`SnippetGenerator`] tokenizes the freshly extracted
+//! to do the hard part: its [`tantivy::snippet::SnippetGenerator`] tokenizes the freshly extracted
 //! text with the *same* analyzer used at index time, locates the query terms,
 //! scores candidate fragments, and picks the best window. Only the text source
 //! changed — the output stays byte-for-byte what the old `snippet_from_doc`

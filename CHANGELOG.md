@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.18.4] - 2026-11-02
+
+### Added
+- **`shadcn-iced` Integration (v0.3.0).** Integrated `shadcn-iced` and `shadcn_iced_core`
+  into the UI stack, bundling Geist, Geist Mono, and Lucide fonts and establishing a
+  unified, token-based design system across the application.
+- **`shadcn_iced::separator` Layout Dividers.** Replaced overlapping container borders
+  with explicit 1px horizontal and vertical separators between panels (Sidebar,
+  Results, Document Preview, Top Navigation, and Status Bar).
+
+### Changed
+- **Design Tokens & Theme Synchronization.** Refactored `src/iced_ui/theme.rs` to derive
+  all surfaces, cards, borders, text, and accent colors from `shadcn_iced::tokens(theme)`
+  under the Zinc preset with Blue accents for both Light and Dark modes.
+- **Card & Container Polish.** Refactored `result_card_normal`, `result_card_hover`,
+  `result_card_selected`, and `padded_card_container` to feature uniform 1px borders,
+  8px radii, and subtle elevation drop shadows. Window-level top and bottom bars
+  now render flush against window bounds rather than floating with rounded borders.
+- **3-Column Layout Symmetry.** Enforced balanced 50/50 proportional sizing
+  (`Length::FillPortion(1)`) between the search results list and document preview pane,
+  eliminating erratic panel flexing.
+
+### Fixed
+- **Clippy & Best Practices.** Fixed `clippy::assert-is-empty` across all unit and
+  integration tests, resolved missing markdown backticks in doc comments, and corrected
+  unresolved intra-doc links in `searcher.rs`, `snippet.rs`, and `startup.rs`.
+- **Cargo Build Configuration.** Explicitly configured `rustc-wrapper = ""` in local
+  `.cargo/config.toml` to prevent external compiler cache wrappers from interfering
+  with C/C++ build steps in dependencies.
+
 ## [0.18.3] - 2026-10-22
 
 ### Added

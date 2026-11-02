@@ -202,8 +202,7 @@ fn main() {
         }
     }
 
-    let app_dir =
-        quaryst::get_app_data_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+    let app_dir = quaryst::get_app_data_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
     if let Err(e) = std::fs::create_dir_all(&app_dir) {
         eprintln!(
             "Error: failed to create the data directory at {}.",

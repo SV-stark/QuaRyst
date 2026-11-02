@@ -1,4 +1,5 @@
 [build]
+rustc-wrapper = ""
 target-dir = "target"
 
 [target.x86_64-pc-windows-msvc]

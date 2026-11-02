@@ -4,7 +4,7 @@ use crate::error::{FlashError, Result};
 #[cfg(not(target_os = "windows"))]
 use crate::error::Result;
 
-/// Registry subkeys holding the "Search with QuaRyst" shell verb.
+/// Registry subkeys holding the "Search with `QuaRyst`" shell verb.
 #[cfg(target_os = "windows")]
 const MENU_KEYS: [&str; 2] = [
     r"Software\Classes\Directory\shell\QuaRyst",

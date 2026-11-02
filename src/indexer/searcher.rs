@@ -101,7 +101,7 @@ pub fn case_sensitive_post_filter(text: &str, terms: &[String]) -> bool {
 /// The fix is a post-filter over the re-extracted document text, which happens
 /// for free during snippet generation — see
 /// [`crate::snippet::generate_snippets`], called from
-/// [`crate::commands::search::search_query_internal`]. Results whose text does
+/// [`crate::commands::search_query_internal`]. Results whose text does
 /// not contain the exact casing are dropped. A query with no uppercase terms is
 /// left alone, so the common case costs nothing.
 #[must_use]

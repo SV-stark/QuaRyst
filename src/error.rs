@@ -49,7 +49,7 @@ pub enum QuaRystError {
     },
 }
 
-/// Backward compatibility alias during transition to QuaRyst.
+/// Backward compatibility alias during transition to `QuaRyst`.
 pub type FlashError = QuaRystError;
 
 impl From<std::io::Error> for QuaRystError {

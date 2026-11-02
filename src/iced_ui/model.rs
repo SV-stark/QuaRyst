@@ -314,6 +314,6 @@ mod tests {
         assert_eq!(converted.extension.as_deref(), Some("rs"));
         assert!(converted.size.is_none());
         assert!(converted.modified.is_none());
-        assert!(converted.snippets.is_empty());
+        assert_eq!(converted.snippets, Vec::<String>::new());
     }
 }

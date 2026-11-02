@@ -60,7 +60,7 @@ pub(super) fn welcome_hero_view(app: &App) -> Element<'_, Message> {
     container(scrollable(hero))
         .center_x(Length::Fill)
         .center_y(Length::Fill)
-        .width(Length::FillPortion(2))
+        .width(Length::Fill)
         .into()
 }
 

@@ -2,16 +2,16 @@
 //!
 //! The Elm architecture maps onto four modules here, one per phase:
 //!
-//! - [`model`] — what the UI state *is*: view models, filter enums, and the pure
+//! - `model` — what the UI state *is*: view models, filter enums, and the pure
 //!   formatting helpers. No `Message`, no I/O.
-//! - [`state`] — the `App` struct, the `Message` enum, and construction.
-//! - [`commands`] — `update`: applying one message to the state.
-//! - [`run`] — `view` and the window wiring.
+//! - `state` — the `App` struct, the `Message` enum, and construction.
+//! - `commands` — `update`: applying one message to the state.
+//! - `run` — `view` and the window wiring.
 //!
 //! Two supporting modules sit alongside them:
 //!
-//! - [`subscription`] — event streams (progress, hotkeys, tray, keyboard).
-//! - [`hotkey`] — hotkey string parsing, split out because it is a pure function
+//! - `subscription` — event streams (progress, hotkeys, tray, keyboard).
+//! - `hotkey` — hotkey string parsing, split out because it is a pure function
 //!   with no reference to `App` or `Message`.
 //!
 //! This file is deliberately just wiring and re-exports. It was previously a

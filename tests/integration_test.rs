@@ -219,7 +219,7 @@ fn test_metadata_batch_operations_agree_with_single_ops() -> Result<()> {
     assert!(stale[7]);
     assert_eq!(stale.iter().filter(|s| **s).count(), 1);
 
-    assert!(db.batch_needs_reindex_paths(&[])?.is_empty());
+    assert_eq!(db.batch_needs_reindex_paths(&[])?, Vec::<bool>::new());
 
     Ok(())
 }
@@ -274,7 +274,7 @@ fn test_metadata_paths_under_and_remove_files() -> Result<()> {
     assert_eq!(db.remove_files(&borrowed)?, 10);
     assert_eq!(db.remove_files(&[])?, 0);
 
-    assert!(db.paths_under(&root)?.is_empty());
+    assert_eq!(db.paths_under(&root)?, Vec::<String>::new());
     assert!(db.get_metadata(&sibling_path)?.is_some());
     assert!(db.get_metadata(&other_path)?.is_some());
 
@@ -419,11 +419,7 @@ async fn test_scan_skips_files_over_the_size_limit() -> Result<()> {
     settings.index_file_size_limit_mb = 0; // 0 MiB => nothing fits
     let (scanner, _, _) = build_scanner(temp.path(), settings)?;
     let report = scanner
-        .scan_directory(
-            data,
-            vec![],
-            quaryst::scanner::cancel::CancelToken::never(),
-        )
+        .scan_directory(data, vec![], quaryst::scanner::cancel::CancelToken::never())
         .await?;
 
     assert_eq!(report.documents_written, 0);

@@ -73,56 +73,34 @@ pub const fn accent_color_light() -> Color {
     c
 }
 
-const fn is_dark_theme(theme: &Theme) -> bool {
-    matches!(theme, Theme::Dark)
+fn is_dark_theme(theme: &Theme) -> bool {
+    shadcn_iced::tokens(theme).is_dark()
 }
 
-const fn surface_color(theme: &Theme) -> Color {
-    if is_dark_theme(theme) {
-        SURFACE_DARK
-    } else {
-        SURFACE_LIGHT
-    }
+fn surface_color(theme: &Theme) -> Color {
+    shadcn_iced::tokens(theme).palette.background
 }
 
-const fn panel_color(theme: &Theme) -> Color {
-    if is_dark_theme(theme) {
-        PANEL_DARK
-    } else {
-        PANEL_LIGHT
-    }
+fn panel_color(theme: &Theme) -> Color {
+    shadcn_iced::tokens(theme).palette.card
 }
 
-const fn border_color(theme: &Theme) -> Color {
-    if is_dark_theme(theme) {
-        BORDER_DARK
-    } else {
-        BORDER_LIGHT
-    }
+fn border_color(theme: &Theme) -> Color {
+    shadcn_iced::tokens(theme).palette.border
 }
 
-const fn text_bright_color(theme: &Theme) -> Color {
-    if is_dark_theme(theme) {
-        TEXT_BRIGHT
-    } else {
-        TEXT_BRIGHT_LIGHT
-    }
+fn text_bright_color(theme: &Theme) -> Color {
+    shadcn_iced::tokens(theme).palette.foreground
 }
 
-const fn text_muted_color(theme: &Theme) -> Color {
-    if is_dark_theme(theme) {
-        TEXT_MUTED
-    } else {
-        TEXT_MUTED_LIGHT
-    }
+fn text_muted_color(theme: &Theme) -> Color {
+    shadcn_iced::tokens(theme).palette.muted_foreground
 }
 
-const fn text_dim_color(theme: &Theme) -> Color {
-    if is_dark_theme(theme) {
-        TEXT_DIM
-    } else {
-        TEXT_DIM_LIGHT
-    }
+fn text_dim_color(theme: &Theme) -> Color {
+    let mut c = shadcn_iced::tokens(theme).palette.muted_foreground;
+    c.a = 0.72;
+    c
 }
 
 // --- Container Styles ---
@@ -140,16 +118,7 @@ pub fn main_content_container(theme: &Theme) -> container::Style {
 pub fn sidebar_container(theme: &Theme) -> container::Style {
     container::Style {
         background: Some(Background::Color(panel_color(theme))),
-        border: Border {
-            color: border_color(theme),
-            width: 1.0,
-            radius: Radius::from(8.0),
-        },
-        shadow: Shadow {
-            color: Color::from_rgba(0.0, 0.0, 0.0, 0.12),
-            offset: Vector::new(2.0, 0.0),
-            blur_radius: 8.0,
-        },
+        border: Border::default(),
         ..Default::default()
     }
 }
@@ -166,11 +135,7 @@ pub fn side_nav_container(_theme: &Theme) -> container::Style {
 pub fn top_bar_container(theme: &Theme) -> container::Style {
     container::Style {
         background: Some(Background::Color(panel_color(theme))),
-        border: Border {
-            color: border_color(theme),
-            width: 1.0,
-            radius: Radius::from(8.0),
-        },
+        border: Border::default(),
         ..Default::default()
     }
 }
@@ -179,32 +144,25 @@ pub fn top_bar_container(theme: &Theme) -> container::Style {
 pub fn header_container(theme: &Theme) -> container::Style {
     container::Style {
         background: Some(Background::Color(panel_color(theme))),
-        border: Border {
-            color: border_color(theme),
-            width: 1.0,
-            radius: Radius::from(8.0),
-        },
+        border: Border::default(),
         ..Default::default()
     }
 }
 
 #[must_use]
 pub fn input_container(theme: &Theme) -> container::Style {
-    let is_dark = is_dark_theme(theme);
+    let t = shadcn_iced::tokens(theme);
     container::Style {
-        background: Some(Background::Color(if is_dark {
-            Color::from_rgb(0.14, 0.14, 0.15)
-        } else {
-            Color::from_rgb(0.97, 0.97, 0.98)
-        })),
+        background: Some(Background::Color(t.palette.card)),
         border: Border {
-            color: if is_dark {
-                Color::from_rgb(0.28, 0.28, 0.30)
-            } else {
-                Color::from_rgb(0.82, 0.82, 0.85)
-            },
+            color: t.palette.border,
             width: 1.0,
             radius: Radius::from(8.0),
+        },
+        shadow: Shadow {
+            color: Color::from_rgba(0.0, 0.0, 0.0, if t.is_dark() { 0.2 } else { 0.04 }),
+            offset: Vector::new(0.0, 1.0),
+            blur_radius: 2.0,
         },
         ..Default::default()
     }
@@ -212,22 +170,18 @@ pub fn input_container(theme: &Theme) -> container::Style {
 
 #[must_use]
 pub fn result_card_normal(theme: &Theme) -> container::Style {
-    let is_dark = is_dark_theme(theme);
+    let t = shadcn_iced::tokens(theme);
     container::Style {
-        background: Some(Background::Color(if is_dark {
-            Color::from_rgba(1.0, 1.0, 1.0, 0.02)
-        } else {
-            Color::from_rgb(1.0, 1.0, 1.0)
-        })),
+        background: Some(Background::Color(t.palette.card)),
         border: Border {
-            color: border_color(theme),
+            color: t.palette.border,
             width: 1.0,
             radius: Radius::from(8.0),
         },
         shadow: Shadow {
-            color: Color::from_rgba(0.0, 0.0, 0.0, if is_dark { 0.2 } else { 0.08 }),
+            color: Color::from_rgba(0.0, 0.0, 0.0, if t.is_dark() { 0.25 } else { 0.04 }),
             offset: Vector::new(0.0, 1.0),
-            blur_radius: 4.0,
+            blur_radius: 3.0,
         },
         ..Default::default()
     }
@@ -235,22 +189,18 @@ pub fn result_card_normal(theme: &Theme) -> container::Style {
 
 #[must_use]
 pub fn result_card_hover(theme: &Theme) -> container::Style {
-    let is_dark = is_dark_theme(theme);
+    let t = shadcn_iced::tokens(theme);
     container::Style {
-        background: Some(Background::Color(if is_dark {
-            Color::from_rgba(1.0, 1.0, 1.0, 0.05)
-        } else {
-            Color::from_rgb(0.96, 0.96, 0.97)
-        })),
+        background: Some(Background::Color(t.palette.accent)),
         border: Border {
-            color: ACCENT_BLUE,
+            color: t.palette.primary,
             width: 1.0,
             radius: Radius::from(8.0),
         },
         shadow: Shadow {
-            color: Color::from_rgba(0.0, 0.47, 0.83, 0.15),
+            color: Color::from_rgba(0.0, 0.0, 0.0, if t.is_dark() { 0.35 } else { 0.08 }),
             offset: Vector::new(0.0, 2.0),
-            blur_radius: 8.0,
+            blur_radius: 6.0,
         },
         ..Default::default()
     }
@@ -258,22 +208,20 @@ pub fn result_card_hover(theme: &Theme) -> container::Style {
 
 #[must_use]
 pub fn result_card_selected(theme: &Theme) -> container::Style {
-    let is_dark = is_dark_theme(theme);
+    let t = shadcn_iced::tokens(theme);
+    let mut bg = t.palette.primary;
+    bg.a = if t.is_dark() { 0.16 } else { 0.10 };
     container::Style {
-        background: Some(Background::Color(if is_dark {
-            Color::from_rgba(0.0, 0.47, 0.83, 0.12)
-        } else {
-            Color::from_rgba(0.0, 0.47, 0.83, 0.08)
-        })),
+        background: Some(Background::Color(bg)),
         border: Border {
-            color: ACCENT_BLUE,
-            width: 1.0,
+            color: t.palette.primary,
+            width: 1.5,
             radius: Radius::from(8.0),
         },
         shadow: Shadow {
-            color: Color::from_rgba(0.0, 0.47, 0.83, 0.2),
+            color: Color::from_rgba(0.0, 0.0, 0.0, if t.is_dark() { 0.3 } else { 0.06 }),
             offset: Vector::new(0.0, 2.0),
-            blur_radius: 8.0,
+            blur_radius: 6.0,
         },
         ..Default::default()
     }
@@ -554,41 +502,32 @@ pub fn warning_banner(_theme: &Theme) -> container::Style {
 // --- Badge / Pill Styles ---
 #[must_use]
 pub fn badge_container(theme: &Theme) -> container::Style {
+    let t = shadcn_iced::tokens(theme);
     container::Style {
-        background: Some(Background::Color(if is_dark_theme(theme) {
-            Color::from_rgba(1.0, 1.0, 1.0, 0.06)
-        } else {
-            Color::from_rgba(0.0, 0.0, 0.0, 0.05)
-        })),
+        background: Some(Background::Color(t.palette.secondary)),
         border: Border {
-            color: border_color(theme),
+            color: t.palette.border,
             width: 1.0,
             radius: Radius::from(6.0),
         },
-        text_color: Some(text_muted_color(theme)),
+        text_color: Some(t.palette.secondary_foreground),
         ..Default::default()
     }
 }
 
 #[must_use]
 pub fn accent_badge_container(theme: &Theme) -> container::Style {
-    let is_dark = is_dark_theme(theme);
+    let t = shadcn_iced::tokens(theme);
+    let mut bg = t.palette.primary;
+    bg.a = if t.is_dark() { 0.16 } else { 0.10 };
     container::Style {
-        background: Some(Background::Color(if is_dark {
-            Color::from_rgba(0.0, 0.47, 0.83, 0.16)
-        } else {
-            Color::from_rgba(0.0, 0.47, 0.83, 0.10)
-        })),
+        background: Some(Background::Color(bg)),
         border: Border {
-            color: Color::from_rgba(0.0, 0.47, 0.83, 0.35),
+            color: t.palette.primary,
             width: 1.0,
             radius: Radius::from(6.0),
         },
-        text_color: Some(if is_dark {
-            Color::from_rgb(0.40, 0.78, 1.0)
-        } else {
-            ACCENT_BLUE
-        }),
+        text_color: Some(t.palette.primary),
         ..Default::default()
     }
 }
@@ -696,22 +635,18 @@ pub fn selectable_button(
 
 #[must_use]
 pub fn padded_card_container(theme: &Theme) -> container::Style {
-    let is_dark = is_dark_theme(theme);
+    let t = shadcn_iced::tokens(theme);
     container::Style {
-        background: Some(Background::Color(if is_dark {
-            Color::from_rgb(0.16, 0.16, 0.17)
-        } else {
-            Color::from_rgb(0.97, 0.97, 0.98)
-        })),
+        background: Some(Background::Color(t.palette.card)),
         border: Border {
-            color: border_color(theme),
+            color: t.palette.border,
             width: 1.0,
             radius: Radius::from(8.0),
         },
         shadow: Shadow {
-            color: Color::from_rgba(0.0, 0.0, 0.0, if is_dark { 0.15 } else { 0.06 }),
-            offset: Vector::new(0.0, 2.0),
-            blur_radius: 6.0,
+            color: Color::from_rgba(0.0, 0.0, 0.0, if t.is_dark() { 0.2 } else { 0.04 }),
+            offset: Vector::new(0.0, 1.0),
+            blur_radius: 4.0,
         },
         ..Default::default()
     }
