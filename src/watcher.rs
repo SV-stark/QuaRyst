@@ -471,9 +471,17 @@ impl WatcherManager {
             return Ok(None);
         }
 
+        if crate::scanner::should_skip_file(path, None) {
+            return Ok(None);
+        }
+
         let Ok(metadata) = std::fs::metadata(path) else {
             return Ok(None);
         };
+
+        if crate::scanner::should_skip_file(path, Some(&metadata)) {
+            return Ok(None);
+        }
 
         let modified = metadata
             .modified()

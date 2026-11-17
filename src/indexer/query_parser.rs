@@ -122,7 +122,15 @@ impl ParsedQuery {
                     });
                 }
                 "size" => {
-                    if let Some(scap) = size_regex.captures(token.value)
+                    let (lo, hi) = parse_size_range(token.value);
+                    if lo.is_some() || hi.is_some() {
+                        if let Some(bytes) = lo {
+                            min_size = Some(min_size.map_or(bytes, |m| m.max(bytes)));
+                        }
+                        if let Some(bytes) = hi {
+                            max_size = Some(max_size.map_or(bytes, |m| m.min(bytes)));
+                        }
+                    } else if let Some(scap) = size_regex.captures(token.value)
                         && let Some(num_str) = scap.get(2)
                         && let Ok(num) = num_str.as_str().parse::<f64>()
                     {
@@ -139,11 +147,6 @@ impl ParsedQuery {
                         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
                         let bytes = (num * multiplier as f64).round() as u64;
                         match op {
-                            // Repeated `>`/`size:` keep the strictest bound. A
-                            // contradictory pair (`size:>10MB size:<1MB`) keeps
-                            // both bounds as written, which yields an empty
-                            // result set — the honest answer to a query that
-                            // asks for the impossible.
                             ">" => min_size = Some(min_size.map_or(bytes, |m| m.max(bytes))),
                             "<" => max_size = Some(max_size.map_or(bytes, |m| m.min(bytes))),
                             _ => {
@@ -154,9 +157,14 @@ impl ParsedQuery {
                     }
                 }
                 "modified" | "date" => {
-                    if let Some((min_ts, max_ts)) = parse_date_range(token.value) {
-                        min_modified = Some(min_modified.map_or(min_ts, |m| m.min(min_ts)));
-                        max_modified = Some(max_modified.map_or(max_ts, |m| m.max(max_ts)));
+                    let (lo, hi) = parse_date_range_bounds(token.value);
+                    if lo.is_some() || hi.is_some() {
+                        if let Some(min_ts) = lo {
+                            min_modified = Some(min_modified.map_or(min_ts, |m| m.min(min_ts)));
+                        }
+                        if let Some(max_ts) = hi {
+                            max_modified = Some(max_modified.map_or(max_ts, |m| m.max(max_ts)));
+                        }
                     }
                 }
                 _ => {}
@@ -363,6 +371,120 @@ pub fn parse_date_range(val: &str) -> Option<(u64, u64)> {
                 None
             }
         }
+    }
+}
+
+/// Parses `"1.5 MB"`, `"200kb"`, `"3 g"` into bytes.
+#[must_use]
+pub fn parse_size_bytes(s: &str) -> Option<u64> {
+    let s = s.trim().to_ascii_lowercase();
+    if s.is_empty() {
+        return None;
+    }
+    let split = s
+        .find(|c: char| !(c.is_ascii_digit() || c == '.'))
+        .unwrap_or(s.len());
+    let (num, unit) = s.split_at(split);
+    let n: f64 = num.parse().ok()?;
+    let mult = match unit.trim() {
+        "" | "b" => 1.0,
+        "k" | "kb" => 1024.0,
+        "m" | "mb" => 1024.0 * 1024.0,
+        "g" | "gb" => 1024.0 * 1024.0 * 1024.0,
+        _ => return None,
+    };
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    Some((n * mult).round() as u64)
+}
+
+/// Parses size filter expressions: `"1 MB~10 MB"`, `">5 MB"`, `"<100 KB"`, or `"10MB"` (exact).
+#[must_use]
+pub fn parse_size_range(s: &str) -> (Option<u64>, Option<u64>) {
+    let s = s.trim();
+    if s.is_empty() {
+        return (None, None);
+    }
+    if let Some(r) = s.strip_prefix('>') {
+        return (parse_size_bytes(r.trim_start_matches('=')), None);
+    }
+    if let Some(r) = s.strip_prefix('<') {
+        return (None, parse_size_bytes(r.trim_start_matches('=')));
+    }
+    if let Some((a, b)) = s.split_once('~') {
+        return (parse_size_bytes(a), parse_size_bytes(b));
+    }
+    parse_size_bytes(s).map_or((None, None), |v| (Some(v), Some(v)))
+}
+
+fn date_period_bounds(s: &str) -> Option<(u64, u64)> {
+    let now = jiff::Zoned::now();
+    let parts: Vec<i16> = s
+        .trim()
+        .split(['-', '/', '.'])
+        .filter(|x| !x.is_empty())
+        .map(|x| x.parse().ok())
+        .collect::<Option<_>>()?;
+
+    let (start_date, end_date) = match parts.as_slice() {
+        [y] if (1970..=2200).contains(y) => (
+            jiff::civil::date(*y, 1, 1),
+            jiff::civil::date(*y, 12, 31),
+        ),
+        [y, m] if (1970..=2200).contains(y) && (1..=12).contains(m) => {
+            let start = jiff::civil::date(*y, i8::try_from(*m).ok()?, 1);
+            let days = start.days_in_month();
+            let end = jiff::civil::date(*y, i8::try_from(*m).ok()?, days);
+            (start, end)
+        }
+        [y, m, d] if (1970..=2200).contains(y) && (1..=12).contains(m) && (1..=31).contains(d) => {
+            let dt = jiff::civil::date(*y, i8::try_from(*m).ok()?, i8::try_from(*d).ok()?);
+            (dt, dt)
+        }
+        _ => return None,
+    };
+
+    let start_ts = start_date
+        .at(0, 0, 0, 0)
+        .to_zoned(now.time_zone().clone())
+        .ok()?
+        .timestamp()
+        .as_second();
+    let end_ts = end_date
+        .at(23, 59, 59, 0)
+        .to_zoned(now.time_zone().clone())
+        .ok()?
+        .timestamp()
+        .as_second();
+
+    Some((u64::try_from(start_ts).ok()?, u64::try_from(end_ts).ok()?))
+}
+
+/// Parses date filter expressions: `"today"`, `"2025"`, `"2025-03"`, `"2024-01~2024-06"`,
+/// `"2024~"`, `"~2023"`, `">2024-05"`, `"<2023"`, or `"2024-01-01..2024-06-30"`.
+#[must_use]
+pub fn parse_date_range_bounds(s: &str) -> (Option<u64>, Option<u64>) {
+    let s = s.trim();
+    if s.is_empty() {
+        return (None, None);
+    }
+    if let Some((a, b)) = parse_date_range(s) {
+        return (Some(a), Some(b));
+    }
+    if let Some(r) = s.strip_prefix('>') {
+        return (date_period_bounds(r).map(|p| p.1.saturating_add(1)), None);
+    }
+    if let Some(r) = s.strip_prefix('<') {
+        return (None, date_period_bounds(r).map(|p| p.0));
+    }
+    if let Some((a, b)) = s.split_once('~') {
+        return (
+            date_period_bounds(a).map(|p| p.0),
+            date_period_bounds(b).map(|p| p.1),
+        );
+    }
+    match date_period_bounds(s) {
+        Some((a, b)) => (Some(a), Some(b)),
+        None => (None, None),
     }
 }
 

@@ -4,6 +4,7 @@
 //! preview-specific presentation rather than result presentation, so it lives
 //! here rather than in `results`.
 
+use super::super::model::PreviewMode;
 use super::super::{App, Message, theme};
 use super::snippet::parse_snippet;
 use crate::iced_ui::icons::{load_icon, load_icon_size};
@@ -172,10 +173,76 @@ pub(super) fn right_panel(app: &App) -> Element<'_, Message> {
             .style(theme::header_container)
             .width(Length::Fill);
 
-            let content: Element<'_, Message> =
-                column(preview_result.elements.iter().map(render_element))
-                    .spacing(10)
-                    .into();
+            let matching_elements: Vec<(usize, &DocumentElementHighlight)> = preview_result
+                .elements
+                .iter()
+                .enumerate()
+                .filter(|(_, el)| el.spans.iter().any(|(_, color)| color.is_some()))
+                .map(|(idx, el)| (idx + 1, el))
+                .collect();
+
+            let is_full = app.preview_mode == PreviewMode::Full;
+            let mode_toggle = row![
+                button(text("Full Text").size(theme::fs(11.0)))
+                    .on_press(Message::PreviewModeChanged(PreviewMode::Full))
+                    .style(move |t, s| {
+                        if is_full {
+                            theme::primary_button()(t, s)
+                        } else {
+                            theme::ghost_button()(t, s)
+                        }
+                    })
+                    .padding(Padding::from([4, 10])),
+                button(text(format!("Matches ({})", matching_elements.len())).size(theme::fs(11.0)))
+                    .on_press(Message::PreviewModeChanged(PreviewMode::Matches))
+                    .style(move |t, s| {
+                        if is_full {
+                            theme::ghost_button()(t, s)
+                        } else {
+                            theme::primary_button()(t, s)
+                        }
+                    })
+                    .padding(Padding::from([4, 10])),
+            ]
+            .spacing(6)
+            .align_y(Alignment::Center);
+
+            let content: Element<'_, Message> = match app.preview_mode {
+                PreviewMode::Full => {
+                    column(preview_result.elements.iter().map(render_element))
+                        .spacing(10)
+                        .into()
+                }
+                PreviewMode::Matches => {
+                    if matching_elements.is_empty() {
+                        text("No inline highlights in the previewed excerpt. Switch to Full Text to read the document.")
+                            .size(theme::fs(12.0))
+                            .style(theme::dim_text_style())
+                            .into()
+                    } else {
+                        column(matching_elements.into_iter().take(400).map(|(line_no, el)| {
+                            container(
+                                row![
+                                    text(format!("{line_no}"))
+                                        .font(Font::MONOSPACE)
+                                        .size(theme::fs(11.0))
+                                        .style(theme::dim_text_style())
+                                        .width(Length::Fixed(34.0)),
+                                    container(render_element(el)).width(Length::Fill),
+                                ]
+                                .spacing(8)
+                                .align_y(Alignment::Start),
+                            )
+                            .padding(Padding::from([6, 10]))
+                            .style(theme::hit_highlight_container)
+                            .width(Length::Fill)
+                            .into()
+                        }))
+                        .spacing(6)
+                        .into()
+                    }
+                }
+            };
 
             let snippets: Element<'_, Message> = res.map_or_else(
                 || column![].into(),
@@ -212,25 +279,30 @@ pub(super) fn right_panel(app: &App) -> Element<'_, Message> {
 
             let body = scrollable(
                 column![
-                    container(
-                        row![
-                            load_icon("file-text"),
-                            text(format!(
-                                "{} structural elements parsed",
-                                preview_result.elements.len()
-                            ))
-                            .size(theme::fs(11.0))
-                        ]
-                        .spacing(8)
-                        .align_y(Alignment::Center)
-                    )
-                    .style(theme::badge_container)
-                    .padding(Padding {
-                        top: 5.0,
-                        bottom: 5.0,
-                        left: 10.0,
-                        right: 10.0,
-                    }),
+                    row![
+                        container(
+                            row![
+                                load_icon("file-text"),
+                                text(format!(
+                                    "{} structural elements parsed",
+                                    preview_result.elements.len()
+                                ))
+                                .size(theme::fs(11.0))
+                            ]
+                            .spacing(8)
+                            .align_y(Alignment::Center)
+                        )
+                        .style(theme::badge_container)
+                        .padding(Padding {
+                            top: 5.0,
+                            bottom: 5.0,
+                            left: 10.0,
+                            right: 10.0,
+                        }),
+                        Space::new().width(Length::Fill),
+                        mode_toggle,
+                    ]
+                    .align_y(Alignment::Center),
                     snippets,
                     Space::new().height(6.0),
                     text("Document Content")

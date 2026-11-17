@@ -170,7 +170,10 @@ pub async fn call_tool(state: &Arc<AppState>, params: &Value) -> Result<Value, R
         .get("name")
         .and_then(Value::as_str)
         .ok_or_else(|| RpcError::invalid_params("missing \"name\""))?;
-    let arguments = params.get("arguments").cloned().unwrap_or(json!({}));
+    let arguments = params
+        .get("arguments")
+        .cloned()
+        .unwrap_or_else(|| json!({}));
 
     match name {
         "search" => search(state, &arguments).await,

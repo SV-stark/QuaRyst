@@ -156,6 +156,105 @@ pub enum SortBy {
     Name,
 }
 
+/// How search results are displayed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ResultsView {
+    #[default]
+    Cards,
+    Table,
+}
+
+/// How the right-hand preview pane renders a selected document.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum PreviewMode {
+    #[default]
+    Full,
+    Matches,
+}
+
+/// Which inline column filter input changed in Table view.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ColumnFilterField {
+    Name,
+    Modified,
+    Path,
+    Ext,
+    Size,
+}
+
+/// Inline column filters shown below Table view headers.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ColumnFilters {
+    pub name: String,
+    pub modified: String,
+    pub path: String,
+    pub ext: String,
+    pub size: String,
+}
+
+impl ColumnFilters {
+    /// Returns `true` if `item` satisfies all non-empty inline column filters.
+    #[must_use]
+    pub fn matches(&self, item: &FileItem) -> bool {
+        if !self.name.trim().is_empty() {
+            let needle = self.name.trim().to_ascii_lowercase();
+            let file_name = std::path::Path::new(&item.path)
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or(&item.title)
+                .to_ascii_lowercase();
+            if !file_name.contains(&needle) && !item.title.to_ascii_lowercase().contains(&needle) {
+                return false;
+            }
+        }
+        if !self.path.trim().is_empty() {
+            let needle = self.path.trim().to_ascii_lowercase();
+            if !item.path.to_ascii_lowercase().contains(&needle) {
+                return false;
+            }
+        }
+        if !self.ext.trim().is_empty() {
+            let item_ext = item
+                .extension
+                .as_deref()
+                .unwrap_or("")
+                .to_ascii_lowercase();
+            let any_match = self
+                .ext
+                .split(|c: char| c.is_whitespace() || c == ',' || c == ';')
+                .map(|s| s.trim().trim_start_matches('.').to_ascii_lowercase())
+                .filter(|s| !s.is_empty())
+                .any(|e| item_ext == e);
+            if !any_match {
+                return false;
+            }
+        }
+        if !self.modified.trim().is_empty() {
+            let (lo, hi) = crate::indexer::query_parser::parse_date_range_bounds(&self.modified);
+            if lo.is_some() || hi.is_some() {
+                let Some(m) = item.modified else {
+                    return false;
+                };
+                if lo.is_some_and(|min| m < min) || hi.is_some_and(|max| m > max) {
+                    return false;
+                }
+            }
+        }
+        if !self.size.trim().is_empty() {
+            let (lo, hi) = crate::indexer::query_parser::parse_size_range(&self.size);
+            if lo.is_some() || hi.is_some() {
+                let Some(sz) = item.size else {
+                    return false;
+                };
+                if lo.is_some_and(|min| sz < min) || hi.is_some_and(|max| sz > max) {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+}
+
 impl std::fmt::Display for SortBy {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

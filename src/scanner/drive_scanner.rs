@@ -77,6 +77,7 @@ mod windows_usn {
         total_count: &Arc<AtomicUsize>,
     ) -> Result<()> {
         unsafe {
+            const SKIP_ATTRS: u32 = FILE_ATTRIBUTE_SYSTEM.0 | 0x0400 | 0x1000 | 0x0040_0000;
             let mut journal_data = USN_JOURNAL_DATA_V0::default();
             let mut bytes_returned = 0u32;
 
@@ -146,8 +147,8 @@ mod windows_usn {
                         break;
                     }
 
-                    // Skip system files to clean up the output and increase performance
-                    if (record.FileAttributes & FILE_ATTRIBUTE_SYSTEM.0) == 0 {
+                    // Skip system files, reparse points, offline/cloud-only placeholders, and Office lock files
+                    if (record.FileAttributes & SKIP_ATTRS) == 0 {
                         let name_offset = record.FileNameOffset as usize;
                         let name_len_bytes = record.FileNameLength as usize;
 
@@ -165,7 +166,7 @@ mod windows_usn {
 
                             if is_dir {
                                 dir_map.insert(frn, DirInfo { name, parent_frn });
-                            } else {
+                            } else if !name.starts_with("~$") {
                                 files.push((name, parent_frn));
                             }
                         }
@@ -278,6 +279,7 @@ mod windows_usn {
         volume_wide.push(0);
 
         std::thread::spawn(move || {
+            crate::system::throttling::enter_background_thread_mode();
             unsafe {
                 let handle = CreateFileW(
                     windows::core::PCWSTR(volume_wide.as_ptr()),

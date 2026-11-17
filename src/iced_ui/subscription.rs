@@ -50,6 +50,7 @@ pub fn subscription(app: &App) -> Subscription<Message> {
         // checkbox labelled "minimize to system tray on window close" did
         // nothing except decide whether a tray icon was created at startup.
         iced::window::Event::CloseRequested => Message::WindowCloseRequested(id),
+        iced::window::Event::FileDropped(path) => Message::FolderDropped(path),
         _ => Message::NoOp,
     });
 

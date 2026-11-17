@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.19.0] - 2026-11-17
+
+### Added
+- **Richer Query Syntax & Tokenizer (Schema 5.0.0).** Added custom `quaryst_words`
+  tokenizer (CJK character-level indexing, >40-char and >12-digit token filtering),
+  prefix-by-default word matching, `"phrase"~N` proximity, `word~` / `word~2` fuzzy
+  terms, `/regex/` inline patterns, `-negation` on all clauses, `~` range syntax for
+  `size:` and `date:`/`modified:`, and a recency tie-breaker in relevance scoring.
+- **Table View & Inline Column Filters.** Added a `Cards | Table` toggle with
+  clickable 3-state sort headers (`Name`, `Modified`, `Path`, `Type`, `Size`) and
+  inline per-column filter inputs.
+- **Matches-Only Preview Toggle.** Added a `Full Text | Matches (N)` toggle in the
+  preview pane showing only matching lines with line numbers.
+- **Drag-and-Drop Folder Indexing.** Dropping a folder onto the window adds it to
+  `index_dirs` and starts indexing immediately.
+- **Windows Safety & Background Throttling.** Added `should_skip_file` to skip `~$`
+  Office lock files and Windows `REPARSE | OFFLINE | RECALL_ON_DATA_ACCESS` cloud
+  placeholders, plus `THREAD_MODE_BACKGROUND_BEGIN` on indexing/watcher threads.
+- **UTF-16 BOM & Binary Detection.** Plaintext fast path now decodes UTF-16 LE/BE
+  BOMs, rejects binary payloads containing null bytes, and falls back to Latin-1.
+
+### Changed
+- **Purged `xberg` in Favor of Pure-Rust Native Parsers.** Replaced `xberg` with
+  `unpdf` (`0.55.0`, `default-features = false`, `fast-parse`) for PDFs, `zip`
+  (`9.6.1`) + streaming XML/RTF tag strippers for OOXML/ODF/EPUB/RTF/HTML/SVG/KML,
+  and `legacy_binary` for `.doc`/`.xls`/`.ppt`, running synchronously on Rayon.
+- **Synced Default Extensions (`COMMON_EXTENSIONS`).** Updated `src/settings.rs`,
+  `README.md`, and `agents.md` to match all 88 natively supported extensions.
+- **Dependency Updates (`cargo update`).** Updated `arc-swap`, `aws-lc-rs`, `cc`,
+  `clap`, `encoding_rs`, `flate2`, `globset`, `ignore`, `notify`, `openssl`, `rand`,
+  `rustix`, `smallvec`, `ureq`, `uuid`, `zstd`, and others.
+
+### Fixed
+- **Manifest Warning.** Removed redundant `package.homepage` from `Cargo.toml`.
+
 ## [0.18.4] - 2026-11-02
 
 ### Added

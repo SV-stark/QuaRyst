@@ -23,7 +23,7 @@ fn init_logging(app_data_dir: &std::path::Path) {
     let _ = LOG_GUARD.set(guard);
 
     let env_filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("quaryst=info,xberg=info"));
+        .unwrap_or_else(|_| EnvFilter::new("quaryst=info"));
 
     tracing_subscriber::registry()
         .with(env_filter)

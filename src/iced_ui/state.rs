@@ -6,7 +6,8 @@
 //! definition. Nothing in this module performs I/O on the caller's thread.
 
 use super::model::{
-    ContextMenuState, DOUBLE_CLICK_WINDOW, DateFilter, FileItem, LastClick, SearchMode, SortBy, Tab,
+    ColumnFilterField, ColumnFilters, ContextMenuState, DOUBLE_CLICK_WINDOW, DateFilter, FileItem,
+    LastClick, PreviewMode, ResultsView, SearchMode, SortBy, Tab,
 };
 use super::theme;
 use crate::commands::{AppState, search_filenames_internal, search_query_internal};
@@ -97,6 +98,11 @@ pub enum Message {
     // System
     PickFolder,
     FolderPicked(Option<String>),
+    FolderDropped(std::path::PathBuf),
+    ResultsViewChanged(ResultsView),
+    PreviewModeChanged(PreviewMode),
+    ColumnFilterChanged(ColumnFilterField, String),
+    SortColumnClicked(SortBy),
     ExportResults(String), // format: "csv" or "json"
     WindowIdCaptured(iced::window::Id),
     WindowUnfocused(iced::window::Id),
@@ -177,6 +183,10 @@ pub struct App {
     pub(crate) date_filter: DateFilter,
     pub(crate) search_mode: SearchMode,
     pub(crate) sort_by: SortBy,
+    pub(crate) sort_descending: bool,
+    pub(crate) results_view: ResultsView,
+    pub(crate) preview_mode: PreviewMode,
+    pub(crate) column_filters: ColumnFilters,
     pub(crate) filter_size: String,
     pub(crate) files_indexed: i32,
     pub(crate) index_size: String,
@@ -237,6 +247,10 @@ impl Default for App {
             date_filter: DateFilter::Anytime,
             search_mode: SearchMode::FullText,
             sort_by: SortBy::default(),
+            sort_descending: true,
+            results_view: ResultsView::default(),
+            preview_mode: PreviewMode::default(),
+            column_filters: ColumnFilters::default(),
             filter_size: String::new(),
             files_indexed: 0,
             index_size: "0 MB".to_string(),
@@ -566,15 +580,28 @@ impl App {
                 });
             }
             SortBy::DateModified => {
-                self.results
-                    .sort_by_key(|b| std::cmp::Reverse(b.modified.unwrap_or(0)));
+                if self.sort_descending {
+                    self.results
+                        .sort_by_key(|b| std::cmp::Reverse(b.modified.unwrap_or(0)));
+                } else {
+                    self.results.sort_by_key(|a| a.modified.unwrap_or(0));
+                }
             }
             SortBy::Size => {
-                self.results
-                    .sort_by_key(|b| std::cmp::Reverse(b.size.unwrap_or(0)));
+                if self.sort_descending {
+                    self.results
+                        .sort_by_key(|b| std::cmp::Reverse(b.size.unwrap_or(0)));
+                } else {
+                    self.results.sort_by_key(|a| a.size.unwrap_or(0));
+                }
             }
             SortBy::Name => {
-                self.results.sort_by_key(|a| a.title.to_lowercase());
+                if self.sort_descending {
+                    self.results
+                        .sort_by_key(|b| std::cmp::Reverse(b.title.to_lowercase()));
+                } else {
+                    self.results.sort_by_key(|a| a.title.to_lowercase());
+                }
             }
         }
     }

@@ -17,6 +17,35 @@ use std::time::Instant;
 use tokio::sync::mpsc;
 use tracing::{error, info, instrument, warn};
 
+/// Returns `true` for files that should never be read or indexed:
+/// - Office temporary lock files (`~$...`)
+/// - Windows reparse points, offline files, or cloud-only placeholders
+///   (`FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_OFFLINE | FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS`),
+///   which would trigger network downloads if opened.
+#[must_use]
+pub fn should_skip_file(path: &std::path::Path, meta: Option<&std::fs::Metadata>) -> bool {
+    if let Some(name) = path.file_name().and_then(|n| n.to_str())
+        && name.starts_with("~$")
+    {
+        return true;
+    }
+
+    #[cfg(windows)]
+    if let Some(m) = meta {
+        use std::os::windows::fs::MetadataExt;
+        const REPARSE: u32 = 0x400;
+        const OFFLINE: u32 = 0x1000;
+        const RECALL_ON_DATA_ACCESS: u32 = 0x0040_0000;
+        if m.file_attributes() & (REPARSE | OFFLINE | RECALL_ON_DATA_ACCESS) != 0 {
+            return true;
+        }
+    }
+    #[cfg(not(windows))]
+    let _ = meta;
+
+    false
+}
+
 /// Drops already-indexed files from `chunk` and forwards the stale remainder.
 ///
 /// A metadata read failure is logged once and treated as "everything is stale",
@@ -422,6 +451,7 @@ impl Scanner {
         let use_gitignore = settings.use_gitignore;
         let cancel_for_scan = cancel.clone();
         let walker_handle = tokio::task::spawn_blocking(move || {
+            crate::system::throttling::enter_background_thread_mode();
             scanner.scan(
                 root_clone,
                 exclude_patterns,
@@ -464,6 +494,7 @@ impl Scanner {
         // checks the metadata DB for staleness, then sends chunks over chunk_tx.
         let cancel_for_filter = cancel.clone();
         let filter_handle = tokio::task::spawn_blocking(move || {
+            crate::system::throttling::enter_background_thread_mode();
             info!("Stage 2a: Path filtering and chunking");
             let limit_bytes = u64::from(file_size_limit_mb) * 1024 * 1024;
             let mut chunk: Vec<(PathBuf, u64, u64)> = Vec::with_capacity(CHUNK_SIZE);
@@ -486,10 +517,17 @@ impl Scanner {
                     continue;
                 }
 
+                if should_skip_file(&path, None) {
+                    continue;
+                }
+
                 // Stat the file
                 let Ok(meta) = std::fs::metadata(&path) else {
                     continue;
                 };
+                if should_skip_file(&path, Some(&meta)) {
+                    continue;
+                }
                 let size = meta.len();
                 if size > limit_bytes {
                     warn!(
@@ -525,7 +563,7 @@ impl Scanner {
         });
 
         // --- Stage 2b: Async Xberg batch parser ---
-        // Receives chunks over the mpsc channel and awaits xberg's native
+        // Receives chunks over the mpsc channel and runs native pure-Rust parsers.
         // concurrent JoinSet-based batch extractor directly on the Tokio runtime.
         let task_tx_for_parser = task_tx.clone();
         let progress_tx_for_parser = self.progress_tx.clone();

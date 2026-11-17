@@ -34,10 +34,18 @@ pub const DEFAULT_MAX_RESULTS: usize = 50;
 pub const MAX_RESULTS_LIMIT: usize = 10_000;
 
 pub const COMMON_EXTENSIONS: &[&str] = &[
-    "pdf", "docx", "doc", "xlsx", "xls", "pptx", "ppt", "odt", "rtf", "jpeg", "jpg", "png", "tiff",
-    "heic", "heif", "zip", "7z", "rar", "tar", "gz", "eml", "msg", "pst", "epub", "mobi", "azw3",
-    "md", "json", "xml", "txt", "csv", "tsv", "rs", "py", "js", "ts", "go", "java", "c", "cpp",
-    "h", "hpp", "cs", "html", "css",
+    // Documents & Office
+    "pdf", "docx", "docm", "dotx", "dotm", "doc", "xlsx", "xlsm", "xltx", "xltm", "xls", "pptx",
+    "pptm", "ppsx", "potx", "potm", "ppt", "odt", "ods", "odp", "epub", "rtf",
+    // Markup, Web & Geo
+    "html", "htm", "xhtml", "xht", "xml", "svg", "kml", "md", "markdown", "tex",
+    // Text, Data & Logs
+    "txt", "csv", "tsv", "json", "yaml", "yml", "toml", "ini", "conf", "config", "env", "log",
+    // Code & Scripts
+    "rs", "py", "js", "jsx", "ts", "tsx", "css", "scss", "sass", "less", "c", "cpp", "cc", "cxx",
+    "h", "hpp", "hh", "hxx", "cs", "go", "java", "kt", "kts", "swift", "php", "rb", "lua", "sh",
+    "bash", "zsh", "bat", "cmd", "ps1", "psm1", "sql", "graphql", "proto", "diff", "patch", "r",
+    "dart", "scala", "zig", "nim",
 ];
 
 #[derive(Debug, Default)]

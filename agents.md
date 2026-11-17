@@ -20,7 +20,7 @@
 ├─────────────────────────────────────────────────────────────┤
 │  Core Engine                                                │
 │  ├── indexer/       - Tantivy search engine wrapper         │
-│  ├── parsers/       - Kreuzberg unified document intell.      │
+│  ├── parsers/       - Pure-Rust native extractors (unpdf/zip)│
 │  ├── scanner/       - File system crawler                   │
 │  └── metadata/      - redb database operations              │
 └─────────────────────────────────────────────────────────────┘
@@ -41,7 +41,7 @@ quaryst/
 │   │   ├── search.rs        # Search screen UI
 │   │   └── settings.rs      # Settings screen UI
 │   ├── parsers/
-│   │   ├── mod.rs           # Unified parser (via Kreuzberg)
+│   │   ├── mod.rs           # Native parsers (unpdf, zip/XML, RTF)
 │   │   └── memory_map.rs    # Mmap utilities
 │   ├── indexer/
 │   │   ├── mod.rs           # Indexer module

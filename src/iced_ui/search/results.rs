@@ -3,11 +3,12 @@
 //! The empty state (`no_results_view`) lives here too: deciding what the panel
 //! shows is inseparable from building it.
 
+use super::super::model::{ColumnFilterField, ResultsView, SortBy};
 use super::super::{App, FileItem, Message, theme};
 use super::snippet::parse_snippet;
 use super::welcome::welcome_hero_view;
 use crate::iced_ui::icons::load_icon_size;
-use iced::widget::{Space, button, column, container, mouse_area, row, scrollable, text};
+use iced::widget::{Space, TextInput, button, column, container, mouse_area, row, scrollable, text};
 use iced::{Alignment, Element, Font, Length, Padding, font};
 
 #[allow(clippy::items_after_statements)]
@@ -21,22 +22,70 @@ pub(super) fn results_panel(app: &App) -> Element<'_, Message> {
     }
 
     let max_display = app.settings.results_per_page.clamp(25, 200);
+    let is_table = app.results_view == ResultsView::Table;
+
+    // Collect indices of results matching inline column filters (in Table mode).
+    let visible_indices: Vec<usize> = if is_table {
+        app.results
+            .iter()
+            .enumerate()
+            .filter(|(_, r)| app.column_filters.matches(r))
+            .map(|(i, _)| i)
+            .collect()
+    } else {
+        (0..app.results.len()).collect()
+    };
 
     // Virtual scrolling: only render items visible in the viewport plus a
-    // small buffer. Item height is estimated at 90 px; the viewport height
-    // is derived from the scrollable bounds.
-    const ITEM_HEIGHT: f32 = 90.0;
+    // small buffer.
+    let item_height: f32 = if is_table { 32.0 } else { 90.0 };
     const VISIBLE_BUFFER: usize = 5;
     let viewport_height = 600.0_f32; // approximate; refined by on_scroll
     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
     let visible_count =
-        ((viewport_height / ITEM_HEIGHT) as usize + VISIBLE_BUFFER).min(max_display);
+        ((viewport_height / item_height) as usize + VISIBLE_BUFFER).min(max_display);
     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-    let scroll_items = (app.scroll_offset / ITEM_HEIGHT) as usize;
-    let start = scroll_items.min(app.results.len().saturating_sub(visible_count));
-    let end = (start + visible_count)
-        .min(max_display)
-        .min(app.results.len());
+    let scroll_items = (app.scroll_offset / item_height) as usize;
+    let total_visible = visible_indices.len();
+    let start = scroll_items.min(total_visible.saturating_sub(visible_count));
+    let end = (start + visible_count).min(max_display).min(total_visible);
+
+    let view_header = container(
+        row![
+            text(format!(
+                "{} {}",
+                total_visible,
+                if total_visible == 1 { "match" } else { "matches" }
+            ))
+            .size(theme::fs(12.0))
+            .style(theme::muted_text_style()),
+            Space::new().width(Length::Fill),
+            button(text("Cards").size(theme::fs(11.0)))
+                .on_press(Message::ResultsViewChanged(ResultsView::Cards))
+                .style(move |t, s| {
+                    if is_table {
+                        theme::ghost_button()(t, s)
+                    } else {
+                        theme::primary_button()(t, s)
+                    }
+                })
+                .padding(Padding::from([3, 10])),
+            button(text("Table").size(theme::fs(11.0)))
+                .on_press(Message::ResultsViewChanged(ResultsView::Table))
+                .style(move |t, s| {
+                    if is_table {
+                        theme::primary_button()(t, s)
+                    } else {
+                        theme::ghost_button()(t, s)
+                    }
+                })
+                .padding(Padding::from([3, 10])),
+        ]
+        .spacing(6)
+        .align_y(Alignment::Center),
+    )
+    .padding(Padding::from([6, 12]))
+    .width(Length::Fill);
 
     // Batch operations toolbar — shown when >1 result is selected.
     let batch_toolbar: Option<Element<Message>> = if app.selected_paths.len() > 1 {
@@ -101,40 +150,47 @@ pub(super) fn results_panel(app: &App) -> Element<'_, Message> {
     if start > 0 {
         result_elements.push(
             Space::new()
-                .height(Length::Fixed(start as f32 * ITEM_HEIGHT))
+                .height(Length::Fixed(start as f32 * item_height))
                 .into(),
         );
     }
 
-    for i in start..end {
+    for &i in visible_indices.iter().take(end).skip(start) {
         if let Some(res) = app.results.get(i) {
-            result_elements.push(result_item_view(
-                app.selected_index,
-                app.hovered_item_index,
-                &app.selected_paths,
-                i,
-                res,
-            ));
+            if is_table {
+                result_elements.push(table_row_view(
+                    app.selected_index,
+                    app.hovered_item_index,
+                    i,
+                    res,
+                ));
+            } else {
+                result_elements.push(result_item_view(
+                    app.selected_index,
+                    app.hovered_item_index,
+                    &app.selected_paths,
+                    i,
+                    res,
+                ));
+            }
         }
     }
 
     // Bottom spacer for items below the visible range.
-    let remaining = app.results.len().saturating_sub(end);
+    let remaining = total_visible.saturating_sub(end);
     if remaining > 0 {
         result_elements.push(
             Space::new()
-                .height(Length::Fixed(remaining as f32 * ITEM_HEIGHT))
+                .height(Length::Fixed(remaining as f32 * item_height))
                 .into(),
         );
     }
 
-    if app.results.len() > max_display {
+    if total_visible > max_display {
         result_elements.push(
             container(
                 text(format!(
-                    "Showing top {} of {} matches. Refine query to narrow results.",
-                    max_display,
-                    app.results.len()
+                    "Showing top {max_display} of {total_visible} matches. Refine query to narrow results."
                 ))
                 .size(theme::fs(11.0))
                 .style(theme::dim_text_style()),
@@ -149,7 +205,12 @@ pub(super) fn results_panel(app: &App) -> Element<'_, Message> {
         .height(Length::Fill)
         .on_scroll(|vp| Message::ResultsScrolled(vp.absolute_offset().y));
 
-    let mut col = column![];
+    let mut col = column![view_header, shadcn_iced::separator::separator()];
+    if is_table {
+        col = col
+            .push(table_header_and_filters(app))
+            .push(shadcn_iced::separator::separator());
+    }
     if let Some(toolbar) = batch_toolbar {
         col = col.push(toolbar);
     }
@@ -388,5 +449,186 @@ fn result_item_view<'a>(
             left: 10.0,
             right: 10.0,
         })
+        .into()
+}
+
+fn sort_header_button(
+    label: &str,
+    col: Option<SortBy>,
+    active: SortBy,
+    descending: bool,
+    width: Length,
+) -> Element<'_, Message> {
+    let arrow = if col == Some(active) {
+        if descending { " ▼" } else { " ▲" }
+    } else {
+        ""
+    };
+    let content = text(format!("{label}{arrow}"))
+        .size(theme::fs(11.5))
+        .font(Font {
+            weight: font::Weight::Bold,
+            ..Font::default()
+        });
+    let btn = button(content)
+        .style(theme::ghost_button())
+        .padding(Padding::from([4, 6]))
+        .width(width);
+    match col {
+        Some(sort_col) => btn.on_press(Message::SortColumnClicked(sort_col)).into(),
+        None => btn.into(),
+    }
+}
+
+fn table_header_and_filters(app: &App) -> Element<'_, Message> {
+    let headers = row![
+        sort_header_button(
+            "Name",
+            Some(SortBy::Name),
+            app.sort_by,
+            app.sort_descending,
+            Length::FillPortion(3),
+        ),
+        sort_header_button(
+            "Modified",
+            Some(SortBy::DateModified),
+            app.sort_by,
+            app.sort_descending,
+            Length::Fixed(130.0),
+        ),
+        sort_header_button(
+            "Path",
+            None,
+            app.sort_by,
+            app.sort_descending,
+            Length::FillPortion(4),
+        ),
+        sort_header_button(
+            "Type",
+            None,
+            app.sort_by,
+            app.sort_descending,
+            Length::Fixed(70.0),
+        ),
+        sort_header_button(
+            "Size",
+            Some(SortBy::Size),
+            app.sort_by,
+            app.sort_descending,
+            Length::Fixed(90.0),
+        ),
+    ]
+    .spacing(6)
+    .align_y(Alignment::Center);
+
+    let filter_row = row![
+        TextInput::new("eg: report", &app.column_filters.name)
+            .on_input(|s| Message::ColumnFilterChanged(ColumnFilterField::Name, s))
+            .size(theme::fs(11.0))
+            .padding(4)
+            .width(Length::FillPortion(3)),
+        TextInput::new("2024-01~2024-06", &app.column_filters.modified)
+            .on_input(|s| Message::ColumnFilterChanged(ColumnFilterField::Modified, s))
+            .size(theme::fs(11.0))
+            .padding(4)
+            .width(Length::Fixed(130.0)),
+        TextInput::new("eg: work", &app.column_filters.path)
+            .on_input(|s| Message::ColumnFilterChanged(ColumnFilterField::Path, s))
+            .size(theme::fs(11.0))
+            .padding(4)
+            .width(Length::FillPortion(4)),
+        TextInput::new("pdf docx", &app.column_filters.ext)
+            .on_input(|s| Message::ColumnFilterChanged(ColumnFilterField::Ext, s))
+            .size(theme::fs(11.0))
+            .padding(4)
+            .width(Length::Fixed(70.0)),
+        TextInput::new("1 MB~10 MB", &app.column_filters.size)
+            .on_input(|s| Message::ColumnFilterChanged(ColumnFilterField::Size, s))
+            .size(theme::fs(11.0))
+            .padding(4)
+            .width(Length::Fixed(90.0)),
+    ]
+    .spacing(6)
+    .align_y(Alignment::Center);
+
+    container(column![headers, filter_row].spacing(4))
+        .padding(Padding::from([4, 12]))
+        .style(theme::header_container)
+        .width(Length::Fill)
+        .into()
+}
+
+fn table_row_view(
+    selected_index: Option<usize>,
+    hovered_item_index: Option<usize>,
+    i: usize,
+    res: &FileItem,
+) -> Element<'_, Message> {
+    let is_selected = selected_index == Some(i);
+    let is_hovered = hovered_item_index == Some(i);
+
+    let file_name = std::path::Path::new(&res.path)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or(&res.title);
+    let folder = std::path::Path::new(&res.path)
+        .parent()
+        .and_then(|p| p.to_str())
+        .unwrap_or("");
+    let modified = res
+        .modified
+        .map_or_else(|| "—".to_string(), crate::iced_ui::format_date);
+    let ext = res
+        .extension
+        .as_deref()
+        .unwrap_or("FILE")
+        .to_ascii_uppercase();
+    let size = res
+        .size
+        .map_or_else(|| "—".to_string(), crate::iced_ui::format_size);
+
+    let row_content = row![
+        text(file_name)
+            .size(theme::fs(12.0))
+            .width(Length::FillPortion(3)),
+        text(modified)
+            .size(theme::fs(11.0))
+            .style(theme::dim_text_style())
+            .width(Length::Fixed(130.0)),
+        text(folder)
+            .size(theme::fs(11.0))
+            .style(theme::dim_text_style())
+            .width(Length::FillPortion(4)),
+        text(ext)
+            .size(theme::fs(10.5))
+            .style(theme::muted_text_style())
+            .width(Length::Fixed(70.0)),
+        text(size)
+            .size(theme::fs(11.0))
+            .style(theme::dim_text_style())
+            .width(Length::Fixed(90.0)),
+    ]
+    .spacing(6)
+    .align_y(Alignment::Center);
+
+    let mut row_box = container(row_content)
+        .padding(Padding::from([6, 12]))
+        .height(Length::Fixed(32.0))
+        .width(Length::Fill)
+        .style(if is_selected {
+            theme::result_card_selected
+        } else {
+            theme::result_card_normal
+        });
+
+    if is_hovered && !is_selected {
+        row_box = row_box.style(theme::result_card_hover);
+    }
+
+    mouse_area(row_box)
+        .on_press(Message::ResultSelected(i))
+        .on_right_press(Message::ShowContextMenu(i))
+        .on_enter(Message::ItemHovered(Some(i)))
+        .on_exit(Message::ItemHovered(None))
         .into()
 }

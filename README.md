@@ -31,12 +31,12 @@
 - **🎨 Windows 11 Fluent UI 2**: Glassmorphic top bar, dark/light theme toggle, rounded geometry, and category color badges
 - **📂 Filename & Full-Text Modes**: Toggle instantly between full-text document search and filename-only search
 - **💾 Minimal Footprint**: Asynchronous Tokio + Rayon + Mimalloc runtime with minimal idle memory usage
-- **📄 Universal Format Support**: Native text & structural extraction for **75+ formats** (PDF, Office, Images, Archives, Ebooks, Code, etc.)
-- **🔍 Structural Preview**: Live document preview featuring extracted headings, code callouts, tables, and amber match tags
-- **📸 Integrated OCR Pipeline**: Search scanned PDFs and image files via Xberg & Tesseract
+- **📄 88+ Supported Formats**: Pure-Rust native extraction for PDF (`unpdf`), Office/ODF/EPUB (`zip` + XML), RTF, legacy `.doc`/`.xls`/`.ppt`, and 62+ code/text formats
+- **🔍 Structural Preview**: Live document preview with **Matches Only** (line-numbered) vs **Full Text** toggle and syntax-highlighted code blocks
+- **📋 Cards & Table Views**: Switch between rich snippet cards and a sortable Table view with inline column filters (`2024-01~2024-06`, `1 MB~10 MB`, `pdf docx`)
 - **🏷️ Category Presets & Filters**: 1-click presets for **Documents**, **Source Code**, **Data & Logs**, and **Images**, plus extension/size/date filters
-- **📊 Dynamic Result Sorting**: Re-order results on the fly by **Relevance Score**, **Date Modified**, **File Size**, or **File Name**
-- **🔄 Live File Watching**: Real-time index updates via `notify` event watcher
+- **📊 Dynamic Result Sorting**: Re-order results on the fly by **Relevance Score** (with recency tie-breaker), **Date Modified**, **File Size**, or **File Name**
+- **🔄 Live File Watching**: Real-time index updates via `notify` event watcher, plus drag-and-drop folder indexing onto the window
 - **🎯 Smart Control**: `.gitignore` rule parsing, custom exclude patterns, and global `Alt+Space` hotkey
 - **🌙 Instant Theme Switcher**: 1-click direct header toggle between Dark 🌙 and Light ☀️ modes
 - **🔒 Guaranteed Privacy**: 100% local processing with zero network calls and zero telemetry
@@ -92,14 +92,18 @@ cargo run
 
 | Query | Description |
 |:---|:---|
-| `rust tutorial` | Find documents containing both words |
+| `rust tutorial` | Find documents containing both words (prefix-matched by default) |
 | `"exact phrase"` | Find exact phrase matches |
+| `"budget review"~5` | Proximity search: words within 5 positions |
+| `recieve~` / `recieve~2` | Fuzzy typo-tolerant search (1 or 2 edits) |
+| `/inv[0-9]+/` | Inline case-insensitive regex search |
 | `rust OR python` | Boolean OR operator |
-| `code -python` | Exclude documents with "python" |
+| `code -python` | Exclude documents with "python" (works with phrases/regex too) |
 | `title:api` | Search only in document titles |
 | `ext:pdf` | Filter by file extension |
 | `path:docs` | Filter by folder path |
-| `size:>5MB` | Filter by file size (KB, MB, GB) |
+| `size:1MB~10MB` | Filter by file size (`>5MB`, `<100KB`, `1MB~10MB`) |
+| `date:2024-01~2024-06` | Filter by modified date (`today`, `7d`, `2025`, `2024-01~2024-06`) |
 
 <h3 align="center">Keyboard Shortcuts</h3>
 
@@ -140,27 +144,27 @@ QuaRyst automatically manages its index database and rolling background logs (re
 | **Language** | Rust | Zero-overhead, memory-safe core |
 | **GUI** | Iced | High-performance, cross-platform UI framework (<30MB RAM) |
 | **Search Engine** | Tantivy | Full-text indexing with BM25 scoring |
-| **Document Intelligence** | [Xberg](https://github.com/xberg-io/xberg) | Universal text extraction (75+ formats) + OCR |
+| **Document Parsing** | `unpdf` + `zip`/XML/RTF | Pure-Rust, zero-C-dep extraction for **88 formats** |
 | **Metadata DB** | redb | Pure Rust key-value storage |
 | **Concurrency** | Rayon + Tokio | Parallel processing + async I/O |
 
-<h3 align="center">Supported File Formats</h3>
+<h3 align="center">Supported File Formats (88 Extensions)</h3>
 
-| Category | Supported Formats | OCR |
-|:---|:---|:---:|
-| **Digital Documents** | PDF (Native & Scanned), XPS, OXPS, PS, EPS | ✅ |
-| **MS Office** | DOC, DOCX, XLS, XLSX, PPT, PPTX (incl. Macro/Template variations) | ❌ |
-| **Images** | JPG, PNG, WEBP, BMP, GIF, TIFF, JP2, PNM, PBM, PGM, PPM | ✅ |
-| **Text & Markup** | MD, TXT, RTF, HTML, HTM, XML, SVG, LaTeX (TEX), RST, ORG | ❌ |
-| **E-books & Comics** | EPUB, FB2, MOBI, AZW3, CHM, CBZ, CBR | ❌ |
-| **Archives** | ZIP, 7Z, TAR, TGZ, GZ, RAR | ❌ |
-| **Data & Emails** | JSON, YAML, TOML, CSV, ODS, EML, MSG | ❌ |
+| Category | Supported Formats |
+|:---|:---|
+| **PDF** | `pdf` (via `unpdf`) |
+| **MS Office (OOXML)** | `docx`, `docm`, `dotx`, `dotm`, `xlsx`, `xlsm`, `xltx`, `xltm`, `pptx`, `pptm`, `ppsx`, `potx`, `potm` |
+| **MS Office (Legacy)** | `doc`, `xls`, `ppt` (UTF-16LE/ASCII text extraction) |
+| **OpenDocument & E-Books** | `odt`, `ods`, `odp`, `epub` |
+| **Text, Markup & Geo** | `txt`, `md`, `markdown`, `rtf`, `html`, `htm`, `xhtml`, `xht`, `xml`, `svg`, `kml`, `tex` |
+| **Data, Config & Logs** | `json`, `yaml`, `yml`, `toml`, `csv`, `tsv`, `ini`, `conf`, `config`, `env`, `log`, `sql`, `graphql`, `proto`, `diff`, `patch` |
+| **Source Code** | `rs`, `py`, `js`, `jsx`, `ts`, `tsx`, `css`, `scss`, `sass`, `less`, `c`, `cpp`, `cc`, `cxx`, `h`, `hpp`, `hh`, `hxx`, `cs`, `go`, `java`, `kt`, `kts`, `swift`, `php`, `rb`, `lua`, `sh`, `bash`, `zsh`, `bat`, `cmd`, `ps1`, `psm1`, `r`, `dart`, `scala`, `zig`, `nim` |
 
 <h2 align="center">📊 Performance</h2>
 
 <div align="center">
 
-QuaRyst leverages **[Xberg](https://github.com/xberg-io/xberg)**'s Rust-native text extraction engine to bypass traditional parsing bottlenecks. 
+QuaRyst uses zero-C-dependency, pure-Rust parsers (`unpdf`, `zip` + streaming XML/RTF strippers, and memory-mapped plaintext decoding) parallelized across Rayon workers at background OS priority.
 
 Benchmarks on standard desktop hardware (e.g., AMD Ryzen 7 / Apple M-series):
 
@@ -168,7 +172,7 @@ Benchmarks on standard desktop hardware (e.g., AMD Ryzen 7 / Apple M-series):
 
 | Metric | Value | Notes |
 |:---|:---|:---|
-| **Text Extraction Speed** | Up to **9x-40x** faster | Powered by [Xberg](https://github.com/xberg-io/xberg) native extraction |
+| **Text Extraction** | **Pure Rust + Rayon** | Synchronous parallel extraction via `unpdf` + `zip`/XML + `memmap2` |
 | **Indexing Throughput** | **~50-100 MB/s** | Highly parallelized via Rayon & zero-allocation path filtering |
 | **Search Latency (p50)** | **< 10ms** | Zero-copy `rkyv` binary indices + lock-free FST lookups |
 | **Search Latency (p99)** | **< 35ms** | Optimized Tantivy full-text index with debounced commits |
@@ -183,9 +187,8 @@ Benchmarks on standard desktop hardware (e.g., AMD Ryzen 7 / Apple M-series):
 |:---|:---|:---|:---|:---|
 | Startup Time | **Instant** | ~2s | System | ~3s |
 | Memory Overhead | **~30MB** | ~80MB | ~150MB+ | ~120MB |
-| Fast PDF Extraction | ✅ **(Xberg)** | ✅ | ⚠️ | ✅ |
-| Integrated OCR | ✅ **(Multi-Backend)** | ✅ | ❌ | ⚠️ |
-| Supported Formats | ✅ **(75+)** | ✅ | ❌ | ⚠️ |
+| Fast PDF Extraction | ✅ **(`unpdf`)** | ✅ | ⚠️ | ✅ |
+| Supported Formats | ✅ **(88)** | ✅ | ❌ | ⚠️ |
 | Live Updates | ✅ | ✅ | ✅ | ❌ |
 | Cross-Platform | ✅ | ⚠️ | ❌ | ✅ |
 
@@ -208,8 +211,7 @@ Benchmarks on standard desktop hardware (e.g., AMD Ryzen 7 / Apple M-series):
 - [x] **Network Discovery**: Support for enterprise SMB/CIFS and NAS drives
 
 ### Phase 3: Advanced Intelligence (In Progress 🚧)
-- [x] **Universal Text Extraction**: 75+ formats supported via **Xberg**
-- [x] **Integrated OCR**: Native support for scanned PDFs and images
+- [x] **Native Text Extraction**: 88 formats supported in pure Rust (`unpdf`, `zip`/XML, RTF, legacy Office, plaintext/code)
 - [x] **Pinned Results**: Favorite important files for instant access
 - [ ] **Semantic Search**: Vector embeddings for context-aware queries
 - [ ] **Natural Language Queries**: "files from last week about taxes"
@@ -252,7 +254,7 @@ This project is licensed under the GNU General Public License v3 - see the [LICE
 
 QuaRyst is built on the shoulders of giants. We are deeply grateful to the following projects:
 
-- **[Xberg](https://github.com/xberg-io/xberg)** - Our secret weapon for universal document parsing and high-performance OCR.
+- **[unpdf](https://github.com/iyulab/unpdf)** - Fast, pure-Rust PDF text and layout extraction.
 - **[Tantivy](https://github.com/quickwit-oss/tantivy)** - The blazing-fast, index-based search engine that powers our core.
 - **[Iced](https://iced.rs/)** - A battery-included, type-safe GUI library that keeps our RAM usage minimal.
 - **[Redb](https://github.com/cberner/redb)** - A simple, portable, and high-performance embedded key-value store.

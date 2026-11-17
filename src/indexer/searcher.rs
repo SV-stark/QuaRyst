@@ -643,7 +643,24 @@ impl IndexSearcher {
 
             let final_query = tantivy::query::BooleanQuery::new(combine);
             let top_docs = searcher
-                .search(&final_query, &TopDocs::with_limit(limit).order_by_score())
+                .search(
+                    &final_query,
+                    &TopDocs::with_limit(limit).tweak_score(|seg: &tantivy::SegmentReader| {
+                        let m = seg
+                            .fast_fields()
+                            .date("modified")
+                            .map(|c| {
+                                c.first_or_default_col(tantivy::DateTime::from_timestamp_secs(0))
+                            })
+                            .ok();
+                        move |doc, score: f32| {
+                            let bonus = m
+                                .as_ref()
+                                .map_or(0.0, |c| (c.get_val(doc).into_timestamp_secs().max(0) as f32) / 4.0e10);
+                            score + bonus
+                        }
+                    }),
+                )
                 .map_err(|e| FlashError::search(params.query, e.to_string()))?;
 
             Ok((top_docs, Box::new(final_query)))
@@ -659,12 +676,14 @@ impl IndexSearcher {
                 Box::new(tantivy::query::AllQuery),
                 parsed.text_query.as_str(),
             )
+        } else if let Some(rich) = self.build_rich_query(&parsed.text_query) {
+            (rich, parsed.text_query.as_str())
         } else {
             let mut query_parser =
                 tantivy::query::QueryParser::for_index(searcher.index(), vec![self.content_field]);
             query_parser.set_conjunction_by_default();
 
-            // The `default` tokenizer lowercases both the index and the query,
+            // The tokenizer lowercases both the index and the query,
             // so this parse is always case-insensitive. Case sensitivity cannot be
             // expressed here (see `needs_case_post_filter`); it is applied
             // downstream, against the re-extracted document text.
@@ -726,6 +745,109 @@ impl IndexSearcher {
             &parsed,
             &cache_key,
         )
+    }
+
+    fn build_rich_query(&self, input: &str) -> Option<Box<dyn tantivy::query::Query>> {
+        if input.contains(" OR ")
+            || input.contains(" AND ")
+            || input.contains('(')
+            || input.contains(')')
+        {
+            return None;
+        }
+        let parsed = RichQuery::parse(input);
+        if parsed.include.is_empty() && parsed.exclude.is_empty() {
+            return None;
+        }
+        let mut clauses: Vec<(Occur, Box<dyn tantivy::query::Query>)> = Vec::new();
+        for c in &parsed.include {
+            let q = self.clause_to_tantivy(c)?;
+            clauses.push((Occur::Must, q));
+        }
+        if parsed.include.is_empty() {
+            clauses.push((Occur::Must, Box::new(tantivy::query::AllQuery)));
+        }
+        for c in &parsed.exclude {
+            if let Some(q) = self.clause_to_tantivy(c) {
+                clauses.push((Occur::MustNot, q));
+            }
+        }
+        Some(Box::new(tantivy::query::BooleanQuery::new(clauses)))
+    }
+
+    fn clause_to_tantivy(&self, c: &RichClause) -> Option<Box<dyn tantivy::query::Query>> {
+        use tantivy::query::{
+            BooleanQuery, BoostQuery, ConstScoreQuery, FuzzyTermQuery, PhraseQuery,
+            Query as TQuery, RegexQuery, TermQuery,
+        };
+        let term = |field: Field, w: &str| Term::from_field_text(field, w);
+        let bm25 = |w: &str| -> Box<dyn TQuery> {
+            Box::new(TermQuery::new(
+                term(self.content_field, w),
+                IndexRecordOption::WithFreqs,
+            ))
+        };
+        let fixed = |q: Box<dyn TQuery>, score: f32| -> (Occur, Box<dyn TQuery>) {
+            (Occur::Should, Box::new(ConstScoreQuery::new(q, score)))
+        };
+        let title_exact = |w: &str| -> Box<dyn TQuery> {
+            Box::new(TermQuery::new(
+                term(self.title_field, w),
+                IndexRecordOption::Basic,
+            ))
+        };
+        let any = |parts: Vec<(Occur, Box<dyn TQuery>)>| -> Option<Box<dyn TQuery>> {
+            if parts.is_empty() {
+                None
+            } else {
+                Some(Box::new(BooleanQuery::new(parts)))
+            }
+        };
+
+        match c {
+            RichClause::Word(w) => {
+                let mut parts = vec![
+                    (Occur::Should, bm25(w)),
+                    fixed(title_exact(w), 3.0),
+                ];
+                if let Some(p) = prefix_regex_query(w, self.content_field) {
+                    parts.push(fixed(p, 0.5));
+                }
+                if let Some(p) = prefix_regex_query(w, self.title_field) {
+                    parts.push(fixed(p, 1.5));
+                }
+                any(parts)
+            }
+            RichClause::Exact(w) => {
+                any(vec![(Occur::Should, bm25(w)), fixed(title_exact(w), 3.0)])
+            }
+            RichClause::Phrase(words, slop) => {
+                let mut pq = PhraseQuery::new(
+                    words
+                        .iter()
+                        .map(|w| term(self.content_field, w))
+                        .collect(),
+                );
+                pq.set_slop(*slop);
+                Some(Box::new(BoostQuery::new(Box::new(pq), 1.5)))
+            }
+            RichClause::Fuzzy(w, d) => any(vec![
+                fixed(
+                    Box::new(FuzzyTermQuery::new(term(self.content_field, w), *d, true)),
+                    1.0,
+                ),
+                fixed(
+                    Box::new(FuzzyTermQuery::new(term(self.title_field, w), *d, true)),
+                    2.0,
+                ),
+            ]),
+            RichClause::Regex(pat) => {
+                let pat = format!("(?i){pat}");
+                let c = RegexQuery::from_pattern(&pat, self.content_field).ok()?;
+                let t = RegexQuery::from_pattern(&pat, self.title_field).ok()?;
+                any(vec![fixed(Box::new(c), 1.0), fixed(Box::new(t), 2.0)])
+            }
+        }
     }
 
     fn process_top_docs(
@@ -947,6 +1069,118 @@ impl IndexSearcher {
     }
 }
 
+fn prefix_regex_query(word: &str, field: Field) -> Option<Box<dyn tantivy::query::Query>> {
+    let mut pat = String::with_capacity(word.len() + 4);
+    for c in word.chars() {
+        if !c.is_alphanumeric() {
+            pat.push('\\');
+        }
+        pat.push(c);
+    }
+    pat.push_str(".*");
+    tantivy::query::RegexQuery::from_pattern(&pat, field)
+        .ok()
+        .map(|q| Box::new(q) as Box<dyn tantivy::query::Query>)
+}
+
+#[derive(Clone, PartialEq, Debug)]
+enum RichClause {
+    Word(String),
+    Exact(String),
+    Phrase(Vec<String>, u32),
+    Fuzzy(String, u8),
+    Regex(String),
+}
+
+#[derive(Default, Clone)]
+struct RichQuery {
+    include: Vec<RichClause>,
+    exclude: Vec<RichClause>,
+}
+
+impl RichQuery {
+    #[allow(clippy::many_single_char_names)]
+    fn parse(s: &str) -> Self {
+        let mut q = Self::default();
+        let chars: Vec<char> = s.chars().collect();
+        let n = chars.len();
+        let mut i = 0;
+        while i < n {
+            if chars[i].is_whitespace() {
+                i += 1;
+                continue;
+            }
+            let neg = chars[i] == '-' && i + 1 < n && !chars[i + 1].is_whitespace();
+            if neg {
+                i += 1;
+            }
+            let mut clauses: Vec<RichClause> = Vec::new();
+            if chars[i] == '"' {
+                let close = (i + 1..n).find(|&k| chars[k] == '"').unwrap_or(n);
+                let inner: String = chars[i + 1..close].iter().collect();
+                i = (close + 1).min(n);
+                let slop = if i < n && chars[i] == '~' {
+                    i += 1;
+                    let start = i;
+                    while i < n && chars[i].is_ascii_digit() {
+                        i += 1;
+                    }
+                    let digits: String = chars[start..i].iter().collect();
+                    digits.parse().unwrap_or(3).min(50)
+                } else {
+                    0u32
+                };
+                let mut words = Vec::new();
+                crate::indexer::schema::tokenize_words(&inner, |t| words.push(t.to_string()));
+                match words.len() {
+                    0 => {}
+                    1 => clauses.push(RichClause::Exact(words.pop().unwrap())),
+                    _ => clauses.push(RichClause::Phrase(words, slop)),
+                }
+            } else if chars[i] == '/'
+                && (i + 1..n).any(|k| chars[k] == '/' && chars[k - 1] != '\\')
+            {
+                let close = (i + 1..n)
+                    .find(|&k| chars[k] == '/' && chars[k - 1] != '\\')
+                    .unwrap();
+                let pat: String = chars[i + 1..close].iter().collect();
+                i = close + 1;
+                if !pat.is_empty() {
+                    clauses.push(RichClause::Regex(pat));
+                }
+            } else {
+                let start = i;
+                while i < n && !chars[i].is_whitespace() {
+                    i += 1;
+                }
+                let chunk: String = chars[start..i].iter().collect();
+                let (body, fuzzy) = match chunk.rsplit_once('~') {
+                    Some((b, d)) if !b.is_empty() && d.chars().all(|c| c.is_ascii_digit()) => (
+                        b.to_string(),
+                        Some(d.parse::<u8>().unwrap_or(1).clamp(1, 2)),
+                    ),
+                    _ => (chunk.clone(), None),
+                };
+                let mut words = Vec::new();
+                crate::indexer::schema::tokenize_words(&body, |t| words.push(t.to_string()));
+                match (words.len(), fuzzy) {
+                    (0, _) => {}
+                    (_, Some(d)) => clauses.push(RichClause::Fuzzy(words.swap_remove(0), d)),
+                    (1, None) => clauses.push(RichClause::Word(words.pop().unwrap())),
+                    (_, None) => clauses.push(RichClause::Phrase(words, 0)),
+                }
+            }
+            let list = if neg { &mut q.exclude } else { &mut q.include };
+            for c in clauses {
+                if !list.contains(&c) {
+                    list.push(c);
+                }
+            }
+        }
+        q
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::super::writer::IndexWriterManager;
@@ -980,6 +1214,7 @@ mod tests {
             crate::indexer::schema::create_schema(),
         )
         .unwrap();
+        crate::indexer::schema::register_tokenizers(&index);
 
         let writer: IndexWriterManager = IndexWriterManager::new(&index, 64).unwrap();
 
@@ -1203,6 +1438,7 @@ mod tests {
             crate::indexer::schema::create_schema(),
         )
         .unwrap();
+        crate::indexer::schema::register_tokenizers(&index);
         let writer = IndexWriterManager::new(&index, 64).unwrap();
         writer
             .add_document(&doc("C:/a.txt", "content"), 1, 1)

@@ -55,3 +55,17 @@ pub fn get_adaptive_system_load(base_threads: u8) -> SystemLoadMetrics {
         used_memory_pct: used_mem_pct,
     }
 }
+
+/// Lowers the calling thread's CPU, disk I/O, and memory paging priority on Windows.
+///
+/// Safe to call once at the start of a background scanning/indexing worker thread.
+/// No-op on non-Windows targets.
+pub fn enter_background_thread_mode() {
+    #[cfg(windows)]
+    unsafe {
+        use windows::Win32::System::Threading::{
+            GetCurrentThread, SetThreadPriority, THREAD_MODE_BACKGROUND_BEGIN,
+        };
+        let _ = SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_BEGIN);
+    }
+}

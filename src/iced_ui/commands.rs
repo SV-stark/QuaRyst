@@ -7,7 +7,10 @@
 //! logic, and vice versa.
 
 use super::Message;
-use super::model::{ContextMenuState, DateFilter, LastClick, SearchMode, Tab, get_search_input_id};
+use super::model::{
+    ColumnFilterField, ContextMenuState, DateFilter, LastClick, SearchMode, SortBy, Tab,
+    get_search_input_id,
+};
 use super::state::App;
 use super::theme;
 use crate::commands::get_file_preview_highlighted_internal;
@@ -69,7 +72,40 @@ pub fn update(app: &mut App, message: Message) -> Task<Message> {
         }
         Message::SortByChanged(sort) => {
             app.sort_by = sort;
+            app.sort_descending = !matches!(sort, SortBy::Name);
             app.sort_results();
+            Task::none()
+        }
+        Message::SortColumnClicked(col) => {
+            let default_desc = !matches!(col, SortBy::Name);
+            if app.sort_by == col && app.sort_descending == default_desc {
+                app.sort_descending = !default_desc;
+            } else if app.sort_by == col {
+                app.sort_by = SortBy::Relevance;
+                app.sort_descending = true;
+            } else {
+                app.sort_by = col;
+                app.sort_descending = default_desc;
+            }
+            app.sort_results();
+            Task::none()
+        }
+        Message::ResultsViewChanged(view) => {
+            app.results_view = view;
+            Task::none()
+        }
+        Message::PreviewModeChanged(mode) => {
+            app.preview_mode = mode;
+            Task::none()
+        }
+        Message::ColumnFilterChanged(field, val) => {
+            match field {
+                ColumnFilterField::Name => app.column_filters.name = val,
+                ColumnFilterField::Modified => app.column_filters.modified = val,
+                ColumnFilterField::Path => app.column_filters.path = val,
+                ColumnFilterField::Ext => app.column_filters.ext = val,
+                ColumnFilterField::Size => app.column_filters.size = val,
+            }
             Task::none()
         }
         Message::SearchError(e) => {
@@ -674,6 +710,34 @@ pub fn update(app: &mut App, message: Message) -> Task<Message> {
                 .await;
             Message::FolderPicked(handle.map(|h| h.path().to_string_lossy().to_string()))
         }),
+        Message::FolderDropped(dropped) => {
+            let dir = if dropped.is_dir() {
+                dropped
+            } else {
+                dropped
+                    .parent()
+                    .map_or_else(|| dropped.clone(), std::path::Path::to_path_buf)
+            };
+            let path = dir.to_string_lossy().to_string();
+            if dir.is_dir() && !app.settings.index_dirs.contains(&path) {
+                app.settings.index_dirs.push(path.clone());
+                if let Some(state) = &app.state {
+                    let state = state.clone();
+                    let save_task = app.save_settings();
+                    let scan_task = Task::future(async move {
+                        if let Err(e) = state
+                            .start_indexing(std::path::PathBuf::from(path))
+                            .await
+                        {
+                            tracing::error!("Failed to start indexing dropped folder: {e}");
+                        }
+                        Message::IndexRebuilt
+                    });
+                    return Task::batch(vec![save_task, scan_task]);
+                }
+            }
+            Task::none()
+        }
         Message::FolderPicked(Some(path)) => {
             if !app.settings.index_dirs.contains(&path) {
                 app.settings.index_dirs.push(path.clone());

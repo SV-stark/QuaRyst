@@ -219,6 +219,8 @@ impl IndexManager {
             SCHEMA_VERSION
         );
 
+        schema::register_tokenizers(&index);
+
         let writer = IndexWriterManager::new(&index, memory_limit_mb)?;
         let searcher = IndexSearcher::new(&index, index_path)?;
 

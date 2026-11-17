@@ -197,8 +197,8 @@ fn extract_text(path: &Path, enable_ocr: bool) -> Result<String> {
             .map_err(|e| crate::error::FlashError::parse(path, format!("Read failed: {e}")));
     }
 
-    let config = crate::parsers::extraction_config_for(enable_ocr);
-    let doc = extract_document(path, &config)?;
+    let _ = enable_ocr;
+    let doc = crate::parsers::parse_file_sync(path)?;
     Ok(combine_content_and_keywords(&doc))
 }
 
@@ -215,36 +215,6 @@ fn combine_content_and_keywords(doc: &ParsedDocument) -> String {
             combined
         },
     )
-}
-
-/// Calls the xberg extractor.
-///
-/// `xberg::extract` is async but the caller is a blocking thread that has no
-/// runtime, so a current-thread runtime is built here rather than paying for a
-/// multi-threaded one per snippet.
-fn extract_document(path: &Path, config: &xberg::ExtractionConfig) -> Result<ParsedDocument> {
-    let runtime = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .map_err(|e| crate::error::FlashError::parse(path, format!("runtime: {e}")))?;
-
-    runtime.block_on(async {
-        let input = xberg::ExtractInput::from_uri(path.to_string_lossy().into_owned());
-        let result = xberg::extract(input, config).await.map_err(|e| {
-            crate::error::FlashError::parse(path, format!("Extraction failed: {e}"))
-        })?;
-        result
-            .results
-            .into_iter()
-            .next()
-            .map(|doc| crate::parsers::map_extracted_document(path, doc))
-            .ok_or_else(|| {
-                crate::error::FlashError::parse(
-                    path,
-                    "Extraction returned empty results list".to_string(),
-                )
-            })
-    })
 }
 
 /// Renders one highlighted snippet using Tantivy's own fragment scorer.
