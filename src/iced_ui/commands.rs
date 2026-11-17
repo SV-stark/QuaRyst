@@ -725,10 +725,7 @@ pub fn update(app: &mut App, message: Message) -> Task<Message> {
                     let state = state.clone();
                     let save_task = app.save_settings();
                     let scan_task = Task::future(async move {
-                        if let Err(e) = state
-                            .start_indexing(std::path::PathBuf::from(path))
-                            .await
-                        {
+                        if let Err(e) = state.start_indexing(std::path::PathBuf::from(path)).await {
                             tracing::error!("Failed to start indexing dropped folder: {e}");
                         }
                         Message::IndexRebuilt

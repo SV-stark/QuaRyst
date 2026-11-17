@@ -214,11 +214,7 @@ impl ColumnFilters {
             }
         }
         if !self.ext.trim().is_empty() {
-            let item_ext = item
-                .extension
-                .as_deref()
-                .unwrap_or("")
-                .to_ascii_lowercase();
+            let item_ext = item.extension.as_deref().unwrap_or("").to_ascii_lowercase();
             let any_match = self
                 .ext
                 .split(|c: char| c.is_whitespace() || c == ',' || c == ';')

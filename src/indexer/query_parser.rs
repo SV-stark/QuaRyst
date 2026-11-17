@@ -426,10 +426,9 @@ fn date_period_bounds(s: &str) -> Option<(u64, u64)> {
         .collect::<Option<_>>()?;
 
     let (start_date, end_date) = match parts.as_slice() {
-        [y] if (1970..=2200).contains(y) => (
-            jiff::civil::date(*y, 1, 1),
-            jiff::civil::date(*y, 12, 31),
-        ),
+        [y] if (1970..=2200).contains(y) => {
+            (jiff::civil::date(*y, 1, 1), jiff::civil::date(*y, 12, 31))
+        }
         [y, m] if (1970..=2200).contains(y) && (1..=12).contains(m) => {
             let start = jiff::civil::date(*y, i8::try_from(*m).ok()?, 1);
             let days = start.days_in_month();

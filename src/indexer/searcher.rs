@@ -654,9 +654,9 @@ impl IndexSearcher {
                             })
                             .ok();
                         move |doc, score: f32| {
-                            let bonus = m
-                                .as_ref()
-                                .map_or(0.0, |c| (c.get_val(doc).into_timestamp_secs().max(0) as f32) / 4.0e10);
+                            let bonus = m.as_ref().map_or(0.0, |c| {
+                                (c.get_val(doc).into_timestamp_secs().max(0) as f32) / 4.0e10
+                            });
                             score + bonus
                         }
                     }),
@@ -806,10 +806,7 @@ impl IndexSearcher {
 
         match c {
             RichClause::Word(w) => {
-                let mut parts = vec![
-                    (Occur::Should, bm25(w)),
-                    fixed(title_exact(w), 3.0),
-                ];
+                let mut parts = vec![(Occur::Should, bm25(w)), fixed(title_exact(w), 3.0)];
                 if let Some(p) = prefix_regex_query(w, self.content_field) {
                     parts.push(fixed(p, 0.5));
                 }
@@ -818,16 +815,10 @@ impl IndexSearcher {
                 }
                 any(parts)
             }
-            RichClause::Exact(w) => {
-                any(vec![(Occur::Should, bm25(w)), fixed(title_exact(w), 3.0)])
-            }
+            RichClause::Exact(w) => any(vec![(Occur::Should, bm25(w)), fixed(title_exact(w), 3.0)]),
             RichClause::Phrase(words, slop) => {
-                let mut pq = PhraseQuery::new(
-                    words
-                        .iter()
-                        .map(|w| term(self.content_field, w))
-                        .collect(),
-                );
+                let mut pq =
+                    PhraseQuery::new(words.iter().map(|w| term(self.content_field, w)).collect());
                 pq.set_slop(*slop);
                 Some(Box::new(BoostQuery::new(Box::new(pq), 1.5)))
             }
@@ -1137,8 +1128,7 @@ impl RichQuery {
                     1 => clauses.push(RichClause::Exact(words.pop().unwrap())),
                     _ => clauses.push(RichClause::Phrase(words, slop)),
                 }
-            } else if chars[i] == '/'
-                && (i + 1..n).any(|k| chars[k] == '/' && chars[k - 1] != '\\')
+            } else if chars[i] == '/' && (i + 1..n).any(|k| chars[k] == '/' && chars[k - 1] != '\\')
             {
                 let close = (i + 1..n)
                     .find(|&k| chars[k] == '/' && chars[k - 1] != '\\')

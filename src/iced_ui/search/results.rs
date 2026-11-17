@@ -8,7 +8,9 @@ use super::super::{App, FileItem, Message, theme};
 use super::snippet::parse_snippet;
 use super::welcome::welcome_hero_view;
 use crate::iced_ui::icons::load_icon_size;
-use iced::widget::{Space, TextInput, button, column, container, mouse_area, row, scrollable, text};
+use iced::widget::{
+    Space, TextInput, button, column, container, mouse_area, row, scrollable, text,
+};
 use iced::{Alignment, Element, Font, Length, Padding, font};
 
 #[allow(clippy::items_after_statements)]
@@ -55,7 +57,11 @@ pub(super) fn results_panel(app: &App) -> Element<'_, Message> {
             text(format!(
                 "{} {}",
                 total_visible,
-                if total_visible == 1 { "match" } else { "matches" }
+                if total_visible == 1 {
+                    "match"
+                } else {
+                    "matches"
+                }
             ))
             .size(theme::fs(12.0))
             .style(theme::muted_text_style()),
