@@ -83,7 +83,7 @@ arboard = "3.4"
 regex = "1"
 opener = { version = "0.8", features = ["reveal"] }
 rfd = "0.17"
-tray-icon = "0.22"
+tray-icon = { version = "0.26", default-features = false, features = ["ksni"] }
 auto-launch = "0.6"
 image = { version = "0.25", default-features = false, features = [
     "png",
