@@ -1,6 +1,6 @@
 [package]
 name = "quaryst"
-version = "0.19.0"
+version = "0.19.1"
 description = "Ultrafast local text search"
 authors = ["QuaRyst Team"]
 repository = "https://github.com/SV-stark/QuaRyst"

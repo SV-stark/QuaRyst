@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.19.1] - 2026-11-19
+
+### Added
+- **Windows MSI Installer.** Enabled `msi` installer builds via `cargo-dist` (`wix/main.wxs`), publishing `quaryst-x86_64-pc-windows-msvc.msi` alongside the existing archive and script installers.
+
 ## [0.19.0] - 2026-11-17
 
 ### Added
