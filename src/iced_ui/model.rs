@@ -370,8 +370,9 @@ mod tests {
 
     #[test]
     fn file_item_falls_back_to_the_file_name_when_a_document_has_no_title() {
+        let path = std::path::Path::new("docs").join("report.pdf");
         let converted = FileItem::from(SearchResult {
-            file_path: compact_str::CompactString::from("C:\\docs\\report.pdf"),
+            file_path: compact_str::CompactString::from(path.to_string_lossy().as_ref()),
             score: 2.0,
             title: None,
             extension: Some(compact("pdf")),
@@ -386,8 +387,9 @@ mod tests {
 
     #[test]
     fn a_document_title_wins_over_the_file_name() {
+        let path = std::path::Path::new("docs").join("report.pdf");
         let converted = FileItem::from(SearchResult {
-            file_path: compact_str::CompactString::from("C:\\docs\\report.pdf"),
+            file_path: compact_str::CompactString::from(path.to_string_lossy().as_ref()),
             score: 1.0,
             title: Some(compact("Quarterly Report")),
             extension: Some(compact("pdf")),
@@ -401,8 +403,9 @@ mod tests {
 
     #[test]
     fn filename_matches_carry_no_score_size_or_mtime() {
+        let path = std::path::Path::new("src").join("main.rs");
         let converted = FileItem::from(crate::indexer::filename_index::FilenameSearchResult {
-            file_path: "C:\\src\\main.rs".to_string(),
+            file_path: path.to_string_lossy().into_owned(),
             file_name: CompactString::from("main.rs"),
         });
         assert_eq!(converted.title, "main.rs");
