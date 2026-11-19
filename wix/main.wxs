@@ -60,7 +60,7 @@
 
     <Product
         Id='*'
-        Name='quaryst'
+        Name='QuaRyst'
         UpgradeCode='E1FACBD5-A11A-405C-8FDF-7206DC898547'
         Manufacturer='QuaRyst Team'
         Language='1033'
@@ -83,7 +83,7 @@
             DowngradeErrorMessage='A newer version of [ProductName] is already installed. Setup will now exit.'/>
 
         <Media Id='1' Cabinet='media1.cab' EmbedCab='yes' DiskPrompt='CD-ROM #1'/>
-        <Property Id='DiskPrompt' Value='quaryst Installation'/>
+        <Property Id='DiskPrompt' Value='QuaRyst Installation'/>
 
         <Directory Id='TARGETDIR' Name='SourceDir'>
             <Directory Id='$(var.PlatformProgramFilesFolder)' Name='PFiles'>
@@ -131,6 +131,44 @@
                     </Directory>
                 </Directory>
             </Directory>
+
+            <Directory Id='ProgramMenuFolder'>
+                <Component Id='StartMenuShortcut' Guid='A8E4F1B2-5C3D-4E9A-B712-9F3C4D8E1A2B'>
+                    <Shortcut
+                        Id='ApplicationStartMenuShortcut'
+                        Name='QuaRyst'
+                        Description='Ultrafast local text search'
+                        Target='[Bin]quaryst.exe'
+                        WorkingDirectory='Bin'
+                        Icon='QuaRyst.ico'/>
+                    <RegistryValue
+                        Root='HKCU'
+                        Key='Software\QuaRyst'
+                        Name='StartMenuShortcut'
+                        Type='integer'
+                        Value='1'
+                        KeyPath='yes'/>
+                </Component>
+            </Directory>
+
+            <Directory Id='DesktopFolder'>
+                <Component Id='DesktopShortcut' Guid='D3B7C9E1-8A4F-462D-9E51-2C7B6A8F0D4E'>
+                    <Shortcut
+                        Id='ApplicationDesktopShortcut'
+                        Name='QuaRyst'
+                        Description='Ultrafast local text search'
+                        Target='[Bin]quaryst.exe'
+                        WorkingDirectory='Bin'
+                        Icon='QuaRyst.ico'/>
+                    <RegistryValue
+                        Root='HKCU'
+                        Key='Software\QuaRyst'
+                        Name='DesktopShortcut'
+                        Type='integer'
+                        Value='1'
+                        KeyPath='yes'/>
+                </Component>
+            </Directory>
         </Directory>
 
         <Feature
@@ -150,6 +188,16 @@
             <!--<ComponentRef Id='License'/>-->
 
             <ComponentRef Id='binary0'/>
+            <ComponentRef Id='StartMenuShortcut'/>
+
+            <Feature
+                Id='DesktopShortcutFeature'
+                Title='Desktop Shortcut'
+                Description='Create a shortcut for [ProductName] on the Desktop.'
+                Level='1'
+                Absent='allow'>
+                <ComponentRef Id='DesktopShortcut'/>
+            </Feature>
 
             <Feature
                 Id='Environment'
@@ -163,15 +211,8 @@
 
         <SetProperty Id='ARPINSTALLLOCATION' Value='[APPLICATIONFOLDER]' After='CostFinalize'/>
 
-        
-        <!--
-          Uncomment the following `Icon` and `Property` tags to change the product icon.
-
-          The product icon is the graphic that appears in the Add/Remove
-          Programs control panel for the application.
-        -->
-        <!--<Icon Id='ProductICO' SourceFile='wix\Product.ico'/>-->
-        <!--<Property Id='ARPPRODUCTICON' Value='ProductICO' />-->
+        <Icon Id='QuaRyst.ico' SourceFile='assets\icon.ico'/>
+        <Property Id='ARPPRODUCTICON' Value='QuaRyst.ico'/>
 
         <Property Id='ARPHELPLINK' Value='https://github.com/SV-stark/QuaRyst'/>
         

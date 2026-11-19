@@ -1,6 +1,6 @@
 [package]
 name = "quaryst"
-version = "0.19.1"
+version = "0.19.2"
 description = "Ultrafast local text search"
 authors = ["QuaRyst Team"]
 repository = "https://github.com/SV-stark/QuaRyst"
@@ -172,6 +172,8 @@ cargo-dist-version = "0.34.0"
 ci = "github"
 # The installers to generate for each app
 installers = ["shell", "powershell", "msi"]
+# Keep custom Start Menu / Desktop shortcuts and DisplayIcon in wix/main.wxs
+allow-dirty = ["msi"]
 # Target platforms to build apps for (Rust target-triple syntax)
 targets = ["aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"]
 # Whether to install an updater program

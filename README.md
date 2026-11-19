@@ -54,15 +54,15 @@
 
 **Windows (PowerShell):**
 ```powershell
-irm https://github.com/SV-stark/FindAll/releases/latest/download/quaryst-installer.ps1 | iex
+irm https://github.com/SV-stark/QuaRyst/releases/latest/download/quaryst-installer.ps1 | iex
 ```
 
 **macOS & Linux:**
 ```bash
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/SV-stark/FindAll/releases/latest/download/quaryst-installer.sh | sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/SV-stark/QuaRyst/releases/latest/download/quaryst-installer.sh | sh
 ```
 
-Or manually download the pre-built binaries for your platform from the [Releases](https://github.com/SV-stark/FindAll/releases) page.
+Or manually download the pre-built binaries for your platform from the [Releases](https://github.com/SV-stark/QuaRyst/releases) page.
 
 *Note: The installed application binary is called `quaryst`.*
 
@@ -70,8 +70,8 @@ Or manually download the pre-built binaries for your platform from the [Releases
 
 ```bash
 # Clone the repository
-git clone https://github.com/SV-stark/FindAll.git
-cd FindAll
+git clone https://github.com/SV-stark/QuaRyst.git
+cd QuaRyst
 
 # Build the application
 cargo build --release
@@ -234,8 +234,8 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 # Clone and setup
-git clone https://github.com/SV-stark/FindAll.git
-cd FindAll
+git clone https://github.com/SV-stark/QuaRyst.git
+cd QuaRyst
 
 # Run development server
 cargo run

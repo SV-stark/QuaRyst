@@ -98,7 +98,7 @@ fn top_navigation(app: &App) -> Element<'_, Message> {
             .padding(6)
             .style(theme::accent_badge_container),
         column![
-            text("FindAll").size(theme::fs(17.0)).font(Font {
+            text("QuaRyst").size(theme::fs(17.0)).font(Font {
                 weight: font::Weight::Bold,
                 ..Font::default()
             }),

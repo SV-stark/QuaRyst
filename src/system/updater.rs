@@ -13,7 +13,7 @@ pub fn check_for_updates() -> Result<UpdateCheckResult, String> {
     let current = env!("CARGO_PKG_VERSION");
     let updater = Update::configure()
         .repo_owner("SV-stark")
-        .repo_name("findall")
+        .repo_name("QuaRyst")
         .bin_name("quaryst")
         .current_version(current)
         .build()

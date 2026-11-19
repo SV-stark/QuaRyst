@@ -251,7 +251,7 @@ fn search_settings_fields(app: &App) -> Element<'_, Message> {
                     weight: font::Weight::Bold,
                     ..Font::default()
                 }),
-                text("Keyboard shortcut to summon FindAll from anywhere")
+                text("Keyboard shortcut to summon QuaRyst from anywhere")
                     .size(theme::fs(12.0))
                     .style(theme::dim_text_style()),
             ]
@@ -333,12 +333,12 @@ fn system_integration_section(app: &App) -> Element<'_, Message> {
             .size(theme::fs(18.0))
             .text_size(13),
         checkbox(app.settings.auto_start_on_boot)
-            .label("Start FindAll automatically when system starts")
+            .label("Start QuaRyst automatically when system starts")
             .on_toggle(Message::ToggleAutoStart)
             .size(theme::fs(18.0))
             .text_size(13),
         checkbox(app.settings.context_menu_enabled)
-            .label("Add 'Search with FindAll' to Windows right-click context menu")
+            .label("Add 'Search with QuaRyst' to Windows right-click context menu")
             .on_toggle(Message::ToggleContextMenu)
             .size(theme::fs(18.0))
             .text_size(13),
@@ -511,7 +511,7 @@ fn privacy_security_section() -> Element<'static, Message> {
     column![
         row![
             load_icon_size("check", 16.0),
-            text("FindAll operates 100% locally. Zero data or search queries ever leave your machine.")
+            text("QuaRyst operates 100% locally. Zero data or search queries ever leave your machine.")
                 .size(theme::fs(13.0))
                 .style(theme::muted_text_style()),
         ]

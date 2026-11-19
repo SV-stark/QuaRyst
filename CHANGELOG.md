@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.19.2] - 2026-11-19
+
+### Fixed
+- **Windows MSI Installer Integration.** Added Start Menu and Desktop shortcuts (`DesktopShortcutFeature`, enabled by default), wired `assets/icon.ico` to `ARPPRODUCTICON` (`DisplayIcon` in Settings → Apps), updated the MSI product display name to `QuaRyst`, and added `allow-dirty = ["msi"]` in `Cargo.toml` so `cargo-dist` preserves the customized `wix/main.wxs`.
+- **Branding & Repository Cleanup.** Replaced remaining `FindAll` UI labels in the search bar, welcome hero, and settings panes with `QuaRyst`, and updated the self-updater, installer, docs, and release configs to point to `https://github.com/SV-stark/QuaRyst`.
+
 ## [0.19.1] - 2026-11-19
 
 ### Added

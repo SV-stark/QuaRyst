@@ -9,8 +9,8 @@ Thank you for your interest in contributing to QuaRyst!
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 # Clone and setup
-git clone https://github.com/SV-stark/findall.git
-cd findall
+git clone https://github.com/SV-stark/QuaRyst.git
+cd QuaRyst
 
 # Run development server
 cargo run

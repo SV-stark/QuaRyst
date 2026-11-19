@@ -16,7 +16,7 @@ pub(super) fn welcome_hero_view(app: &App) -> Element<'_, Message> {
                 .padding(14)
                 .style(theme::accent_badge_container),
             column![
-                text("FindAll Instant Search")
+                text("QuaRyst Instant Search")
                     .size(theme::fs(22.0))
                     .font(Font {
                         weight: font::Weight::Bold,

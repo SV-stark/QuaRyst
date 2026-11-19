@@ -361,7 +361,7 @@ cargo test
 ## Contact
 
 For questions about implementation details, refer to:
-- GitHub Issues: https://github.com/SV-stark/findall/issues
+- GitHub Issues: https://github.com/SV-stark/QuaRyst/issues
 - Architecture Decisions: See `docs/adr/` directory
 
 ---
